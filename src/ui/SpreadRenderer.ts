@@ -1,13 +1,15 @@
 import Maginet from '../Maginet';
-import ComponentInstance from '../render/ComponentInstance';
+import ComponentInstanceFactory from '../render/ComponentInstanceFactory';
+import { DefaultParameterId } from '../types';
 
 export default class SpreadRenderer {
     private parent: HTMLElement;
     private readonly maginet: Maginet;
-    private container: HTMLElement;
-    private isPanning: boolean;
-    private ctrlPressed: boolean;
-    private selectionBox: HTMLDivElement;
+    private container: HTMLElement | null = null;
+    private isPanning: boolean = false;
+    private ctrlPressed: boolean = false;
+    private selectionBox: HTMLDivElement | null = null;
+    private isDraggingSelected: boolean = false;
 
     constructor(parent: HTMLElement, maginet: Maginet) {
         this.parent = parent;
@@ -23,35 +25,12 @@ export default class SpreadRenderer {
         this.parent.addEventListener('wheel', this.handleScrollWheel.bind(this));
     }
 
-    private _selectedElement: HTMLElement | null;
+    private _selectedElement: HTMLElement | null = null;
 
     get selectedElement() {
         return this._selectedElement;
     }
-
-    set selectedElement(element: HTMLElement | null) {
-        if (this._selectedElement) {
-            this._selectedElement.classList.remove('selected');
-        }
-
-        if (element) {
-            this._selectedElement = element;
-            this._selectedElement.classList.add('selected');
-
-            const elementRect = element.getBoundingClientRect();
-            const containerRect = this.container.getBoundingClientRect();
-
-            this.selectionBox.style.top = `${(elementRect.top - containerRect.top) / this.zoom}px`;
-            this.selectionBox.style.left = `${(elementRect.left - containerRect.left) / this.zoom}px`;
-            this.selectionBox.style.width = `${elementRect.width / this.zoom}px`;
-            this.selectionBox.style.height = `${elementRect.height / this.zoom}px`;
-            this.selectionBox.style.display = 'block';
-        } else {
-            this.selectionBox.style.display = 'none';
-        }
-
-        this.updateView();
-    }
+    private _selectedInstance: ComponentInstanceFactory | null = null;
 
     private _zoom: number = 1;
 
@@ -86,13 +65,41 @@ export default class SpreadRenderer {
         this.updateView();
     }
 
-    private _selectedInstance: ComponentInstance | null;
+    set selectedElement(element: HTMLElement | null) {
+        if (this._selectedElement) {
+            this._selectedElement.classList.remove('selected');
+        }
+
+        if (this.container && this.selectionBox) {
+            if (element) {
+                this._selectedElement = element;
+                this._selectedElement.classList.add('selected');
+
+                const elementRect = element.getBoundingClientRect();
+                const containerRect = this.container.getBoundingClientRect();
+
+                this.selectionBox.style.top = `${(elementRect.top - containerRect.top) / this.zoom}px`;
+                this.selectionBox.style.left = `${(elementRect.left - containerRect.left) / this.zoom}px`;
+                this.selectionBox.style.width = `${elementRect.width / this.zoom}px`;
+                this.selectionBox.style.height = `${elementRect.height / this.zoom}px`;
+                this.selectionBox.style.display = 'block';
+            } else {
+                this.selectionBox.style.display = 'none';
+            }
+        } else {
+            this.renderCurrentSpread();
+            this.updateView();
+            this.selectedElement = element;
+        }
+
+        this.updateView();
+    }
 
     get selectedInstance() {
         return this._selectedInstance;
     }
 
-    set selectedInstance(value: ComponentInstance | null) {
+    set selectedInstance(value: ComponentInstanceFactory | null) {
         this._selectedInstance = value;
         this.updateView();
     }
@@ -122,6 +129,12 @@ export default class SpreadRenderer {
             event.preventDefault();
             this.isPanning = true;
         }
+
+        if (event.button === 0) {
+            if (event.target === this.selectedElement || event.target === this.selectionBox) {
+                this.isDraggingSelected = true;
+            }
+        }
     }
 
     handleMouseUp(event: MouseEvent) {
@@ -129,16 +142,63 @@ export default class SpreadRenderer {
             event.preventDefault();
             this.isPanning = false;
         }
+
+        if (event.button === 0) {
+            if (event.target === this.selectedElement || event.target === this.selectionBox) {
+                this.isDraggingSelected = false;
+            }
+        }
     }
 
     handleMouseLeave(event: MouseEvent) {
         this.isPanning = false;
+        this.isDraggingSelected = false;
     }
 
     handleMouseMove(event: MouseEvent) {
         if (this.isPanning) {
             this.x += event.movementX;
             this.y += event.movementY;
+        }
+
+        if (this.isDraggingSelected && this.selectedInstance) {
+            console.log('dragging!');
+            event.preventDefault();
+            const xParameter = this
+                .selectedInstance
+                .parameterMapping
+                .find(e => e.parameterId === DefaultParameterId.X);
+
+            if (xParameter?.tiedTo === null) {
+                this.selectedInstance.parameterMapping = this
+                    .selectedInstance
+                    .parameterMapping
+                    .map(e => e.parameterId === DefaultParameterId.X ?
+                        {
+                            ...e,
+                            value: e.value as number + event.movementX,
+                        } :
+                        e,
+                    );
+            }
+
+            const yParameter = this
+                .selectedInstance
+                .parameterMapping
+                .find(e => e.parameterId === DefaultParameterId.Y);
+
+            if (yParameter?.tiedTo === null) {
+                this.selectedInstance.parameterMapping = this
+                    .selectedInstance
+                    .parameterMapping
+                    .map(e => e.parameterId === DefaultParameterId.Y ?
+                        {
+                            ...e,
+                            value: e.value as number + event.movementY,
+                        } :
+                        e,
+                    );
+            }
         }
     }
 
@@ -200,7 +260,7 @@ export default class SpreadRenderer {
         this.updateView();
     }
 
-    select(element: HTMLElement, instance: ComponentInstance) {
+    select(element: HTMLElement, instance: ComponentInstanceFactory) {
         this.selectedElement = element;
         this.selectedInstance = instance;
     }

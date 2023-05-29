@@ -81,7 +81,7 @@ export default class ComponentInstanceFactory<R extends Component<ComponentOf<R>
                 }
             }
         } else {
-            for (const t of searchSpace) {
+            for (const t of searchSpace!) {
                 const item = t as ComponentInstanceFactory;
 
                 if (item.id === tiedTo.locationId) {
@@ -91,7 +91,7 @@ export default class ComponentInstanceFactory<R extends Component<ComponentOf<R>
 
                     if (res) {
                         if (res.tiedTo === null) {
-                            return res.value;
+                            return res.value!;
                         } else {
                             return ComponentInstanceFactory.resolveParameterValue(
                                 res.tiedTo,
@@ -105,7 +105,7 @@ export default class ComponentInstanceFactory<R extends Component<ComponentOf<R>
                 }
             }
 
-            for (const t of searchSpace) {
+            for (const t of searchSpace!) {
                 const item = t as ComponentInstanceFactory;
 
                 for (let idType of [
@@ -116,7 +116,7 @@ export default class ComponentInstanceFactory<R extends Component<ComponentOf<R>
                         .parameterMapping
                         .find(p => p.parameterId === idType);
                     if (childRes) {
-                        if (childRes.value) {
+                        if (childRes.value !== null) {
                             const childLookup = ComponentInstanceFactory.resolveParameterValue(
                                 tiedTo,
                                 spreads,
@@ -127,7 +127,7 @@ export default class ComponentInstanceFactory<R extends Component<ComponentOf<R>
                             if (childLookup !== null) return childLookup;
                         } else {
                             const resLookup = ComponentInstanceFactory.resolveParameterValue(
-                                childRes.tiedTo,
+                                childRes.tiedTo!,
                                 spreads,
                                 components,
                                 true,
@@ -158,15 +158,16 @@ export default class ComponentInstanceFactory<R extends Component<ComponentOf<R>
             this.component,
             this.parameterMapping.map(p => ({
                 ...this.component.parameters.find(e => e.id == p.parameterId)!,
-                value: p.value || ComponentInstanceFactory.resolveParameterValue(
-                    p.tiedTo,
+                value: p.value ?? (ComponentInstanceFactory.resolveParameterValue(
+                    p.tiedTo!,
                     magazine.spreads,
                     magazine.components,
                     true,
                     null,
-                ),
+                ) || 0),
             })),
             this.id,
+            this,
         );
     }
 }

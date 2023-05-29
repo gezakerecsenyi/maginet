@@ -1,10 +1,10 @@
+import Size from './lib/utils/Size';
 import Component from './render/Component';
 import ComponentInstance from './render/ComponentInstance';
 import ComponentInstanceFactory from './render/ComponentInstanceFactory';
-import Size from './lib/utils/Size';
 
 export interface Magazine {
-    spreads: ComponentInstance[];
+    spreads: ComponentInstance<any>[];
     components: Component[];
 }
 
@@ -80,7 +80,7 @@ export interface Angle {
     unit: AngleUnit;
 }
 
-export type ParameterValueType = number | string | Color | Font | Size | Angle | ComponentInstanceFactory[];
+export type ParameterValueType = number | string | Color | Font | Size | Angle | ComponentInstanceFactory<any>[];
 
 export interface ParameterValue<T extends string = string> {
     id: T | DefaultParameterId;

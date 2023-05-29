@@ -1,6 +1,5 @@
 import Maginet from '../Maginet';
 import { DefaultParameterId, Parameter, ParameterType, ParameterValue } from '../types';
-import ComponentInstance from './ComponentInstance';
 import ComponentInstanceFactory from './ComponentInstanceFactory';
 
 export type RenderMethod<T extends string> = (parameterValue: ParameterValue<T>[], maginet: Maginet) => HTMLElement;
@@ -62,11 +61,16 @@ export default class Component<T extends string = string> {
         this.id = id;
     }
 
-    render(parameterValue: ParameterValue<T>[], me: ComponentInstance, maginet: Maginet, interactable: boolean = true) {
+    render(
+        parameterValue: ParameterValue<T>[],
+        me: ComponentInstanceFactory<Component<T | DefaultParameterId>> | null,
+        maginet: Maginet,
+        interactable: boolean = true,
+    ) {
         const renderRes = this.renderMethod(parameterValue, maginet);
 
         if (interactable) {
-            return maginet.makeSelectable(renderRes, me);
+            return maginet.makeSelectable(renderRes, me as ComponentInstanceFactory);
         } else {
             return renderRes;
         }

@@ -68,7 +68,7 @@ export default class Maginet {
         this.currentSpreadId = '0';
     }
 
-    private _currentSpreadId: string;
+    private _currentSpreadId!: string;
 
     get currentSpreadId() {
         return this._currentSpreadId;
@@ -87,7 +87,7 @@ export default class Maginet {
         this.spreadListRenderer.updatePreviews();
     }
 
-    select(element: HTMLElement, instance: ComponentInstance) {
+    select(element: HTMLElement, instance: ComponentInstanceFactory) {
         this.spreadRenderer.select(element, instance);
     }
 
@@ -95,10 +95,10 @@ export default class Maginet {
         this.spreadRenderer.deselect();
     }
 
-    makeSelectable(element: HTMLElement, instance: ComponentInstance) {
+    makeSelectable(element: HTMLElement, instance: ComponentInstanceFactory | null) {
         element.onclick = (e) => {
             e.stopPropagation();
-            if (instance.component.isSelectable) {
+            if (instance?.component.isSelectable) {
                 this.select(element, instance);
             } else {
                 this.deselect();

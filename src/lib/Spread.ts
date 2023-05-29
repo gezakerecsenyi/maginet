@@ -1,9 +1,9 @@
 import Component from '../render/Component';
-import { SizeUnit } from '../types';
+import { DefaultParameterId, SizeUnit } from '../types';
 import renderAsBlock from './utils/renderAsBlock';
 import Size from './utils/Size';
 
-export const Spread = new Component<never>(
+export const Spread = new Component<DefaultParameterId>(
     [],
     true,
     [],

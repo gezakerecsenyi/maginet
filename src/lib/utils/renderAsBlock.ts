@@ -8,8 +8,8 @@ export default function renderAsBlock(width?: Size, height?: Size, htmlClassName
         const element = document.createElement('div');
         element.style.position = 'relative';
         element.className = `generated-rendered-block ${htmlClassName || ''}`;
-        element.style.width = width?.toString();
-        element.style.height = height?.toString();
+        element.style.width = width?.toString() || '0px';
+        element.style.height = height?.toString() || '0px';
 
         const children = [
             ...(
@@ -32,12 +32,12 @@ export default function renderAsBlock(width?: Size, height?: Size, htmlClassName
                 element.style.top = (
                     child
                         .parameterValues
-                        .find(e => e.id === DefaultParameterId.Y)!.value as Size
+                        .find((e: ParameterValue) => e.id === DefaultParameterId.Y)!.value as Size
                 ).toString();
                 element.style.left = (
                     child
                         .parameterValues
-                        .find(e => e.id === DefaultParameterId.X)!.value as Size
+                        .find((e: ParameterValue) => e.id === DefaultParameterId.X)!.value as Size
                 ).toString();
 
                 return element;

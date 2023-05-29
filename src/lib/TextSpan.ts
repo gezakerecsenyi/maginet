@@ -1,7 +1,7 @@
 import Component from '../render/Component';
-import { ParameterType } from '../types';
+import { DefaultParameterId, ParameterType } from '../types';
 
-export const TextSpan = new Component<'text'>(
+export const TextSpan = new Component<'text' | DefaultParameterId>(
     [
         {
             id: 'text',
