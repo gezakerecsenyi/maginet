@@ -27,7 +27,7 @@ export default class SpreadListRenderer {
                     preview.className = 'spread-preview';
                     preview.style.left = `${totalWidth * (1 - scaleFactor) / 2}px`;
                     preview.style.top = `${totalWidth * (297 / 420) * (1 - scaleFactor) / 2}px`;
-                    const previewContents = e.render(this.maginet.magazine);
+                    const previewContents = e.render(this.maginet);
                     previewContents.style.transform = transformFactor;
                     preview.replaceChildren(previewContents);
 

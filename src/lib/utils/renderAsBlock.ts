@@ -1,9 +1,10 @@
+import Maginet from '../../Maginet';
 import ComponentInstanceFactory from '../../render/ComponentInstanceFactory';
-import { DefaultParameterId, Magazine, ParameterValue } from '../../types';
+import { DefaultParameterId, ParameterValue } from '../../types';
 import Size from './Size';
 
 export default function renderAsBlock(width?: Size, height?: Size, htmlClassName?: string) {
-    return (dataHere: ParameterValue[], magazine: Magazine): HTMLElement => {
+    return (dataHere: ParameterValue[], maginet: Maginet): HTMLElement => {
         const element = document.createElement('div');
         element.style.position = 'relative';
         element.className = `generated-rendered-block ${htmlClassName || ''}`;
@@ -23,9 +24,9 @@ export default function renderAsBlock(width?: Size, height?: Size, htmlClassName
             ) as ComponentInstanceFactory[],
         ];
         children
-            .map(child => child.composeComponentInstance(magazine))
+            .map(child => child.composeComponentInstance(maginet.magazine))
             .map(child => {
-                const element = child.render(magazine);
+                const element = child.render(maginet);
 
                 element.style.position = 'absolute';
                 element.style.top = (

@@ -1,11 +1,13 @@
 import Maginet from '../Maginet';
+import ComponentInstance from '../render/ComponentInstance';
 
 export default class SpreadRenderer {
     private parent: HTMLElement;
-    private maginet: Maginet;
+    private readonly maginet: Maginet;
     private container: HTMLElement;
     private isPanning: boolean;
     private ctrlPressed: boolean;
+    private selectionBox: HTMLDivElement;
 
     constructor(parent: HTMLElement, maginet: Maginet) {
         this.parent = parent;
@@ -19,6 +21,80 @@ export default class SpreadRenderer {
         this.parent.addEventListener('mousemove', this.handleMouseMove.bind(this));
         this.parent.addEventListener('mouseleave', this.handleMouseLeave.bind(this));
         this.parent.addEventListener('wheel', this.handleScrollWheel.bind(this));
+    }
+
+    private _selectedElement: HTMLElement | null;
+
+    get selectedElement() {
+        return this._selectedElement;
+    }
+
+    set selectedElement(element: HTMLElement | null) {
+        if (this._selectedElement) {
+            this._selectedElement.classList.remove('selected');
+        }
+
+        if (element) {
+            this._selectedElement = element;
+            this._selectedElement.classList.add('selected');
+
+            const elementRect = element.getBoundingClientRect();
+            const containerRect = this.container.getBoundingClientRect();
+
+            this.selectionBox.style.top = `${(elementRect.top - containerRect.top) / this.zoom}px`;
+            this.selectionBox.style.left = `${(elementRect.left - containerRect.left) / this.zoom}px`;
+            this.selectionBox.style.width = `${elementRect.width / this.zoom}px`;
+            this.selectionBox.style.height = `${elementRect.height / this.zoom}px`;
+            this.selectionBox.style.display = 'block';
+        } else {
+            this.selectionBox.style.display = 'none';
+        }
+
+        this.updateView();
+    }
+
+    private _zoom: number = 1;
+
+    get zoom(): number {
+        return this._zoom;
+    }
+
+    set zoom(value: number) {
+        this._zoom = Math.max(0.1, value);
+        this.updateView();
+    }
+
+    private _x: number = 0;
+
+    get x(): number {
+        return this._x * this.zoom;
+    }
+
+    set x(value: number) {
+        this._x = value / this.zoom;
+        this.updateView();
+    }
+
+    private _y: number = 0;
+
+    get y(): number {
+        return this._y * this.zoom;
+    }
+
+    set y(value: number) {
+        this._y = value / this.zoom;
+        this.updateView();
+    }
+
+    private _selectedInstance: ComponentInstance | null;
+
+    get selectedInstance() {
+        return this._selectedInstance;
+    }
+
+    set selectedInstance(value: ComponentInstance | null) {
+        this._selectedInstance = value;
+        this.updateView();
     }
 
     handleKeyDown(event: KeyboardEvent) {
@@ -66,39 +142,6 @@ export default class SpreadRenderer {
         }
     }
 
-    private _zoom: number = 1;
-
-    get zoom(): number {
-        return this._zoom;
-    }
-
-    set zoom(value: number) {
-        this._zoom = Math.max(0.1, value);
-        this.updateView();
-    }
-
-    private _x: number = 0;
-
-    get x(): number {
-        return this._x * this.zoom;
-    }
-
-    set x(value: number) {
-        this._x = value / this.zoom;
-        this.updateView();
-    }
-
-    private _y: number = 0;
-
-    get y(): number {
-        return this._y * this.zoom;
-    }
-
-    set y(value: number) {
-        this._y = value / this.zoom;
-        this.updateView();
-    }
-
     updateView() {
         if (this.container) {
             this.container.style.scale = this.zoom.toString();
@@ -138,16 +181,32 @@ export default class SpreadRenderer {
         const container = document.createElement('div');
         container.className = 'preview-motion-container';
 
-        container.replaceChildren(
-            this
-                .maginet
-                .magazine
-                .spreads
-                .find(e => e.id === this.maginet.currentSpreadId)!
-                .render(this.maginet.magazine),
-        );
+        const spread = this
+            .maginet
+            .magazine
+            .spreads
+            .find(e => e.id === this.maginet.currentSpreadId)!
+            .render(this.maginet);
+
+        const selectionBox = document.createElement('div');
+        selectionBox.className = 'selection-box hidden';
+        this.selectionBox = selectionBox;
+
+        container.replaceChildren(spread, selectionBox);
 
         this.parent.replaceChildren(container);
         this.container = container;
+
+        this.updateView();
+    }
+
+    select(element: HTMLElement, instance: ComponentInstance) {
+        this.selectedElement = element;
+        this.selectedInstance = instance;
+    }
+
+    deselect() {
+        this.selectedElement = null;
+        this.selectedInstance = null;
     }
 }

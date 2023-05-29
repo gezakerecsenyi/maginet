@@ -10,4 +10,5 @@ export const Spread = new Component<never>(
     renderAsBlock(new Size(420, SizeUnit.MM), new Size(297, SizeUnit.MM), 'spread'),
     'Spread',
     'A3 Spread',
+    false,
 );

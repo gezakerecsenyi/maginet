@@ -14,10 +14,10 @@ body {
   }
 
   #mm {
-    height: 100mm;
     position: absolute;
-    left: -10px;
     top: -200mm;
+    left: -10px;
+    height: 100mm;
   }
 
   .generated-rendered-block {
@@ -32,14 +32,14 @@ body {
     background-color: $bg-dark;
 
     &#spreads {
-      width: 20vw;
       display: flex;
       flex-direction: column;
+      width: 20vw;
 
       .spread-item {
+        position: relative;
         width: 20vw;
         height: calc(20vw * 297 / 420);
-        position: relative;
         margin-bottom: 10px;
         cursor: pointer;
 
@@ -56,30 +56,36 @@ body {
         }
 
         p {
-          margin: 0;
-          width: 100%;
-          text-align: center;
+          position: absolute;
+          z-index: 10;
           bottom: -5px;
           left: 0;
-          z-index: 10;
-          position: absolute;
+          width: 100%;
+          margin: 0;
+          text-align: center;
           color: rgba(255, 255, 255, 0.7);
         }
       }
     }
 
     &#preview {
-      width: 60vw;
-      overflow: hidden;
       position: relative;
+      overflow: hidden;
+      width: 60vw;
 
       .preview-motion-container {
         position: absolute;
         transform-origin: top left;
+
+        .selection-box {
+          position: absolute;
+          border: 1px solid black;
+        }
       }
     }
 
     &#data {
+      overflow: auto;
       width: 20vw;
       color: white;
     }

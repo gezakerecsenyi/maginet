@@ -11,9 +11,9 @@ import SpreadRenderer from './ui/SpreadRenderer';
 export default class Maginet {
     public magazine: Magazine;
     public deviceScale: number;
-    private spreadRenderer: SpreadRenderer;
-    private spreadListRenderer: SpreadListRenderer;
-    private dataRenderer: DataRenderer;
+    public spreadRenderer: SpreadRenderer;
+    public spreadListRenderer: SpreadListRenderer;
+    public dataRenderer: DataRenderer;
 
     constructor(
         spreadListContainer: HTMLElement,
@@ -85,5 +85,25 @@ export default class Maginet {
     update() {
         this.spreadRenderer.renderCurrentSpread();
         this.spreadListRenderer.updatePreviews();
+    }
+
+    select(element: HTMLElement, instance: ComponentInstance) {
+        this.spreadRenderer.select(element, instance);
+    }
+
+    deselect() {
+        this.spreadRenderer.deselect();
+    }
+
+    makeSelectable(element: HTMLElement, instance: ComponentInstance) {
+        element.onclick = (e) => {
+            e.stopPropagation();
+            if (instance.component.isSelectable) {
+                this.select(element, instance);
+            } else {
+                this.deselect();
+            }
+        };
+        return element;
     }
 }

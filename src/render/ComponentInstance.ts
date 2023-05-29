@@ -1,4 +1,5 @@
-import { Magazine, ParameterValue } from '../types';
+import Maginet from '../Maginet';
+import { ParameterValue } from '../types';
 import Component from './Component';
 
 export default class ComponentInstance<T extends string = string> {
@@ -12,7 +13,7 @@ export default class ComponentInstance<T extends string = string> {
         this.id = id;
     }
 
-    render(magazine: Magazine): HTMLElement {
-        return this.component.render(this.parameterValues, magazine);
+    render(maginet: Maginet): HTMLElement {
+        return this.component.render(this.parameterValues, this, maginet);
     }
 }

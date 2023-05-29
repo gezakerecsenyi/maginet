@@ -1,7 +1,5 @@
 import Component from '../render/Component';
-import { ParameterType, SizeUnit } from '../types';
-import renderAsBlock from './utils/renderAsBlock';
-import Size from './utils/Size';
+import { ParameterType } from '../types';
 
 export const TextSpan = new Component<'text'>(
     [
@@ -9,7 +7,7 @@ export const TextSpan = new Component<'text'>(
             id: 'text',
             displayKey: 'Text content',
             type: ParameterType.String,
-        }
+        },
     ],
     false,
     [],
