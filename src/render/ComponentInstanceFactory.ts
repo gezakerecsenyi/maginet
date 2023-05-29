@@ -1,4 +1,3 @@
-import * as stream from 'stream';
 import { DefaultParameterId, Magazine, ParameterValueType } from '../types';
 import Component from './Component';
 import ComponentInstance from './ComponentInstance';

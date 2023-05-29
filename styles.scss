@@ -2,12 +2,12 @@ $bg-dark: #313131;
 $purple: #b363ff;
 
 body {
-  margin: 0;
-  padding: 0;
+  display: flex;
+  overflow: hidden;
   width: 100vw;
   height: 100vh;
-  overflow: hidden;
-  display: flex;
+  margin: 0;
+  padding: 0;
 
   *:not(.generated-rendered-block) {
     font-family: Arial;
@@ -27,8 +27,8 @@ body {
   }
 
   .block {
-    border: 2px solid black;
     height: 100vh;
+    border: 2px solid black;
     background-color: $bg-dark;
 
     &#spreads {
@@ -81,6 +81,7 @@ body {
 
     &#data {
       width: 20vw;
+      color: white;
     }
   }
 }

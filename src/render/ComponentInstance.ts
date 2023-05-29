@@ -1,5 +1,5 @@
+import { Magazine, ParameterValue } from '../types';
 import Component from './Component';
-import { Magazine, Parameter, ParameterValue } from '../types';
 
 export default class ComponentInstance<T extends string = string> {
     public component: Component<T>;
