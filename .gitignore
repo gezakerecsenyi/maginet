@@ -1,2 +1,7 @@
 # Project exclude paths
 /dist/
+
+*.css
+*.map
+/node_modules/
+/.idea/
