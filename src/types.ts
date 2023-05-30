@@ -9,21 +9,11 @@ export interface Magazine {
 }
 
 export enum DefaultParameterId {
-    X='x',
-    Y='y',
-    LayerDepth='layerDepth',
-    Children='children',
-    Contents='contents',
+    X = 'x', Y = 'y', LayerDepth = 'layerDepth', Children = 'children', Contents = 'contents',
 }
 
 export enum ParameterType {
-    Number,
-    String,
-    Color,
-    Font,
-    Size,
-    Angle,
-    Children,
+    Number, String, Color, Font, Size, Angle, Children,
 }
 
 export interface Parameter {
@@ -41,13 +31,11 @@ export interface ColorPrimitive {
 }
 
 export enum ColorType {
-    Gradient,
-    Solid,
+    Gradient, Solid,
 }
 
 export enum GradientType {
-    Radial,
-    Linear,
+    Radial, Linear,
 }
 
 export interface GradientPoint {
@@ -65,14 +53,11 @@ export interface Color {
 export type Font = string;
 
 export enum SizeUnit {
-    PX='px',
-    PT='pt',
-    MM='mm',
+    PX = 'px', PT = 'pt', MM = 'mm',
 }
 
 export enum AngleUnit {
-    Degrees,
-    Radians,
+    Degrees, Radians,
 }
 
 export interface Angle {

@@ -5,10 +5,17 @@ import Maginet from '../Maginet';
 import ComponentInstanceFactory from '../render/ComponentInstanceFactory';
 import Renderer from '../render/Renderer';
 import { DefaultParameterId, SizeUnit } from '../types';
+import ToolbarRenderer, { OptionType } from './ToolbarRenderer';
 
 export enum EditMode {
     Reference = 'reference',
     Value = 'value',
+    Lock = 'lock',
+}
+
+interface MouseData {
+    clientX: number;
+    clientY: number;
 }
 
 export default class SpreadRenderer {
@@ -19,10 +26,14 @@ export default class SpreadRenderer {
     private ctrlPressed: boolean = false;
     private selectionBox: HTMLDivElement | null = null;
     private currentSpreadRender: HTMLElement | null = null;
+    private toolbarRenderer: ToolbarRenderer;
+    private selectionStart: MouseData | null = null;
+    private dragSelectionBox: HTMLDivElement | null = null;
 
     constructor(parent: HTMLElement, maginet: Maginet) {
         this.parent = parent;
         this.maginet = maginet;
+        this.toolbarRenderer = new ToolbarRenderer(parent, maginet);
 
         window.addEventListener('keydown', this.handleKeyDown.bind(this));
         window.addEventListener('keyup', this.handleKeyUp.bind(this));
@@ -32,6 +43,36 @@ export default class SpreadRenderer {
         this.parent.addEventListener('mousemove', this.handleMouseMove.bind(this));
         this.parent.addEventListener('mouseleave', this.handleMouseLeave.bind(this));
         this.parent.addEventListener('wheel', this.handleScrollWheel.bind(this));
+    }
+
+    private _isDraggingWorkspace: boolean = false;
+
+    get isDraggingWorkspace(): boolean {
+        return this._isDraggingWorkspace;
+    }
+
+    set isDraggingWorkspace(value: boolean) {
+        this._isDraggingWorkspace = value;
+
+        if (value) {
+            this.dragSelectionBox?.classList.remove('hidden');
+        } else {
+            this.dragSelectionBox?.classList.add('hidden');
+            this.dragSelectionBox?.setAttribute('style', '');
+        }
+    }
+
+    private _selectedTool!: OptionType;
+
+    get selectedTool(): OptionType {
+        return this._selectedTool;
+    }
+
+    set selectedTool(value: OptionType) {
+        document.getElementById(`tool-${this.selectedTool}`)?.classList.remove('active');
+        document.getElementById(`tool-${value}`)?.classList.add('active');
+
+        this._selectedTool = value;
     }
 
     private _isDraggingSelected: boolean = false;
@@ -140,7 +181,17 @@ export default class SpreadRenderer {
 
         if (event.key === 'Tab') {
             event.preventDefault();
-            this.editMode = this.editMode === EditMode.Value ? EditMode.Reference : EditMode.Value;
+            this.editMode = [
+                EditMode.Reference,
+                EditMode.Lock,
+                EditMode.Value,
+            ][
+                [
+                    EditMode.Value,
+                    EditMode.Reference,
+                    EditMode.Lock,
+                ].indexOf(this.editMode)
+                ];
         }
     }
 
@@ -157,6 +208,13 @@ export default class SpreadRenderer {
         }
     }
 
+    toScaledDistance(data: MouseData) {
+        return {
+            clientX: (data.clientX - this.container!.getBoundingClientRect().left) / this.zoom,
+            clientY: (data.clientY - this.container!.getBoundingClientRect().top) / this.zoom,
+        };
+    }
+
     handleMouseDown(event: MouseEvent) {
         if (event.button === 1) {
             event.preventDefault();
@@ -166,8 +224,12 @@ export default class SpreadRenderer {
         if (event.button === 0) {
             if (event.target && (event.target as HTMLElement).classList.contains('selection-box-component')) {
                 this.isDraggingSelected = true;
-            } else {
+            } else if (this.container) {
                 this.selectedInstance = null;
+                this.isDraggingWorkspace = true;
+                this.selectionStart = this.toScaledDistance(event);
+
+                // this.updateSelectionMarker(this.selectionStart);
             }
         }
     }
@@ -178,6 +240,7 @@ export default class SpreadRenderer {
             this.isPanning = false;
         }
 
+        this.isDraggingWorkspace = false;
         this.isDraggingSelected = false;
     }
 
@@ -186,11 +249,24 @@ export default class SpreadRenderer {
         this.isDraggingSelected = false;
     }
 
+    updateSelectionMarker(data: MouseData) {
+        if (this.isDraggingWorkspace && this.dragSelectionBox && this.selectionStart) {
+            const mappedCoords = this.toScaledDistance(data);
+
+            this.dragSelectionBox.style.left = `${Math.min(this.selectionStart.clientX, mappedCoords.clientX)}px`;
+            this.dragSelectionBox.style.width = `${Math.abs(mappedCoords.clientX - this.selectionStart.clientX)}px`;
+            this.dragSelectionBox.style.top = `${Math.min(this.selectionStart.clientY, mappedCoords.clientY)}px`;
+            this.dragSelectionBox.style.height = `${Math.abs(mappedCoords.clientY - this.selectionStart.clientY)}px`;
+        }
+    }
+
     handleMouseMove(event: MouseEvent) {
         if (this.isPanning) {
             this.x += event.movementX;
             this.y += event.movementY;
         }
+
+        this.updateSelectionMarker(event);
 
         if (this.isDraggingSelected && this.selectedInstance) {
             event.preventDefault();
@@ -244,7 +320,7 @@ export default class SpreadRenderer {
                                     },
                                 );
                         }
-                    } else {
+                    } else if (this.editMode === EditMode.Reference) {
                         if (resolvedValueLocation.length) {
                             updateFromLocation(
                                 this.maginet.magazine,
@@ -350,6 +426,15 @@ export default class SpreadRenderer {
             this.container.appendChild(this.selectionBox);
         }
 
+        if (!this.dragSelectionBox) {
+            const dragSelectionBox = document.createElement('div');
+            dragSelectionBox.className = 'drag-selection hidden';
+
+            this.container.appendChild(dragSelectionBox);
+            this.dragSelectionBox = dragSelectionBox;
+        }
+
+        this.toolbarRenderer.ensureIsRendered();
         this.updateView();
     }
 

@@ -1,5 +1,9 @@
 $bg-dark: #313131;
+$almost-black: #0e0e0e;
+$accent-dark: #131313;
+
 $purple: #b363ff;
+$orange: #e57600;
 
 body {
   display: flex;
@@ -90,12 +94,64 @@ body {
         border-color: $purple;
       }
 
+      &.editing-by-lock {
+        border-color: $orange;
+      }
+
+      #toolbar {
+        position: absolute;
+        z-index: 1000;
+        top: 0;
+        left: 0;
+        display: flex;
+        width: 100%;
+        height: 40px;
+        padding: 0 10px;
+        background-color: $accent-dark;
+        place-items: center;
+
+        button {
+          margin-right: 10px;
+          padding: 4px 6px;
+          cursor: pointer;
+          color: rgba(255, 255, 255, 0.7);
+          border: 2px solid $almost-black;
+          border-radius: 3px;
+          background: $bg-dark;
+
+          &:hover {
+            color: white;
+          }
+
+          &.active {
+            color: white;
+            border-color: $bg-dark;
+            background-color: $almost-black;
+          }
+        }
+      }
+
       .preview-motion-container {
         position: absolute;
         transform-origin: top left;
 
+        * {
+          user-select: none;
+        }
+
+        .drag-selection {
+          position: absolute;
+          border: 2px solid transparentize($purple, 0.4);
+          background-color: transparentize($purple, 0.8);
+
+          &.hidden {
+            display: none;
+          }
+        }
+
         .selection-box {
           position: absolute;
+          z-index: 999;
           display: none;
           pointer-events: none;
 
