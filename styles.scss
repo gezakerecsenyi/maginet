@@ -13,11 +13,19 @@ body {
     font-family: Arial;
   }
 
-  #mm {
+  #mm, #pt {
     position: absolute;
-    top: -200mm;
     left: -10px;
+  }
+
+  #mm {
+    top: -200mm;
     height: 100mm;
+  }
+
+  #pt {
+    top: -200pt;
+    height: 100pt;
   }
 
   .generated-rendered-block {

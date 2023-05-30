@@ -12,7 +12,7 @@ export default class SpreadListRenderer {
     updatePreviews() {
         const scaleFactor = 0.8;
         const totalWidth = this.container.getBoundingClientRect().width;
-        const transformFactor = `scale(${totalWidth * scaleFactor / (420 * this.maginet.deviceScale)})`;
+        const transformFactor = `scale(${totalWidth * scaleFactor / (420 * this.maginet.pxInMM)})`;
 
         this.container.replaceChildren(
             ...this

@@ -7,19 +7,22 @@ import { DefaultParameterId, Magazine, SizeUnit } from './types';
 import DataRenderer from './ui/DataRenderer';
 import SpreadListRenderer from './ui/SpreadListRenderer';
 import SpreadRenderer from './ui/SpreadRenderer';
+import { PopulatedWindow } from './window';
 
 export default class Maginet {
     public magazine: Magazine;
-    public deviceScale: number;
+    public pxInMM: number;
     public spreadRenderer: SpreadRenderer;
     public spreadListRenderer: SpreadListRenderer;
     public dataRenderer: DataRenderer;
+    public pxInPT: number;
 
     constructor(
         spreadListContainer: HTMLElement,
         previewContainer: HTMLElement,
         dataContainer: HTMLElement,
-        ruler: HTMLElement,
+        mmRuler: HTMLElement,
+        ptRuler: HTMLElement,
     ) {
         this.spreadRenderer = new SpreadRenderer(previewContainer, this);
         this.spreadListRenderer = new SpreadListRenderer(spreadListContainer, this);
@@ -63,7 +66,11 @@ export default class Maginet {
             components: [],
         };
 
-        this.deviceScale = ruler.getBoundingClientRect().height / 100;
+        this.pxInMM = mmRuler.getBoundingClientRect().height / 100;
+        this.pxInPT = ptRuler.getBoundingClientRect().height / 100;
+
+        (window as PopulatedWindow).pxInMM = this.pxInMM;
+        (window as PopulatedWindow).pxInPT = this.pxInPT;
 
         this.currentSpreadId = '0';
     }

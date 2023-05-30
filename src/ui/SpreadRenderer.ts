@@ -1,6 +1,7 @@
+import Size from '../lib/utils/Size';
 import Maginet from '../Maginet';
 import ComponentInstanceFactory from '../render/ComponentInstanceFactory';
-import { DefaultParameterId } from '../types';
+import { DefaultParameterId, SizeUnit } from '../types';
 
 export default class SpreadRenderer {
     private parent: HTMLElement;
@@ -30,6 +31,7 @@ export default class SpreadRenderer {
     get selectedElement() {
         return this._selectedElement;
     }
+
     private _selectedInstance: ComponentInstanceFactory | null = null;
 
     private _zoom: number = 1;
@@ -143,11 +145,7 @@ export default class SpreadRenderer {
             this.isPanning = false;
         }
 
-        if (event.button === 0) {
-            if (event.target === this.selectedElement || event.target === this.selectionBox) {
-                this.isDraggingSelected = false;
-            }
-        }
+        this.isDraggingSelected = false;
     }
 
     handleMouseLeave(event: MouseEvent) {
@@ -162,7 +160,6 @@ export default class SpreadRenderer {
         }
 
         if (this.isDraggingSelected && this.selectedInstance) {
-            console.log('dragging!');
             event.preventDefault();
             const xParameter = this
                 .selectedInstance
@@ -176,7 +173,7 @@ export default class SpreadRenderer {
                     .map(e => e.parameterId === DefaultParameterId.X ?
                         {
                             ...e,
-                            value: e.value as number + event.movementX,
+                            value: (e.value as Size).add(new Size(event.movementX / this.zoom, SizeUnit.PX)),
                         } :
                         e,
                     );
@@ -194,11 +191,13 @@ export default class SpreadRenderer {
                     .map(e => e.parameterId === DefaultParameterId.Y ?
                         {
                             ...e,
-                            value: e.value as number + event.movementY,
+                            value: (e.value as Size).add(new Size(event.movementY / this.zoom, SizeUnit.PX)),
                         } :
                         e,
                     );
             }
+
+            this.renderCurrentSpread([this.selectedInstance]);
         }
     }
 
@@ -237,7 +236,7 @@ export default class SpreadRenderer {
         }
     }
 
-    renderCurrentSpread() {
+    renderCurrentSpread(only?: ComponentInstanceFactory[]) {
         const container = document.createElement('div');
         container.className = 'preview-motion-container';
 

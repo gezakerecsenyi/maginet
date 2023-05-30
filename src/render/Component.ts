@@ -1,3 +1,4 @@
+import getInstanceId from '../lib/utils/getInstanceId';
 import Maginet from '../Maginet';
 import { DefaultParameterId, Parameter, ParameterType, ParameterValue } from '../types';
 import ComponentInstanceFactory from './ComponentInstanceFactory';
@@ -69,8 +70,9 @@ export default class Component<T extends string = string> {
     ) {
         const renderRes = this.renderMethod(parameterValue, maginet);
 
-        if (interactable) {
-            return maginet.makeSelectable(renderRes, me as ComponentInstanceFactory);
+        if (interactable && me) {
+            renderRes.setAttribute('id', getInstanceId(me));
+            return maginet.makeSelectable(renderRes, me as ComponentInstanceFactory<any>);
         } else {
             return renderRes;
         }
