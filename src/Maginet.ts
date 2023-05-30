@@ -52,7 +52,7 @@ export default class Maginet {
                                             id: DefaultParameterId.X,
                                             tiedTo: {
                                                 locationId: '0',
-                                                parameterId: DefaultParameterId.LayerDepth,
+                                                id: DefaultParameterId.LayerDepth,
                                             },
                                             isReference: true,
                                         },

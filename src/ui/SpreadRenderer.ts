@@ -1,5 +1,6 @@
 import getInstanceId from '../lib/utils/getInstanceId';
 import Size from '../lib/utils/Size';
+import updateFromLocation from '../lib/utils/updateFromLocation';
 import Maginet from '../Maginet';
 import ComponentInstanceFactory from '../render/ComponentInstanceFactory';
 import Renderer from '../render/Renderer';
@@ -198,15 +199,15 @@ export default class SpreadRenderer {
                             },
                         );
                 } else if (parameterHere) {
-                    if (this.editMode === EditMode.Value) {
-                        let resolvedValue = ComponentInstanceFactory.resolveParameterValue(
-                            parameterHere.tiedTo!,
-                            this.maginet.magazine.spreads,
-                            this.maginet.magazine.components,
-                            true,
-                            null,
-                        );
+                    let [resolvedValue, resolvedValueLocation] = ComponentInstanceFactory.resolveParameterValue(
+                        parameterHere.tiedTo!,
+                        this.maginet.magazine.spreads,
+                        this.maginet.magazine.components,
+                        true,
+                        null,
+                    );
 
+                    if (this.editMode === EditMode.Value) {
                         if (resolvedValue !== null) {
                             this
                                 .selectedInstance
@@ -218,6 +219,14 @@ export default class SpreadRenderer {
                                         isReference: false,
                                     },
                                 );
+                        }
+                    } else {
+                        if (resolvedValueLocation.length) {
+                            updateFromLocation(
+                                this.maginet.magazine,
+                                (resolvedValue as Size).add(addend),
+                                resolvedValueLocation,
+                            );
                         }
                     }
                 }

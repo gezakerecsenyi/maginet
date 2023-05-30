@@ -5,7 +5,7 @@ import ComponentInstance from './ComponentInstance';
 
 export interface ParameterAssociationDescriptor {
     locationId: string;
-    parameterId: DefaultParameterId | string;
+    id: DefaultParameterId | string;
 }
 
 export interface ParameterCalculator<T extends string> {
@@ -34,15 +34,25 @@ export default class ComponentInstanceFactory<R extends Component<ComponentOf<R>
         components: Component[],
         isTopLevel: Q,
         searchSpace: Q extends true ? null : ComponentInstanceFactory[],
-    ): ParameterValueType | null {
+        foundAt: string[] = [],
+    ): [ParameterValueType | null, string[]] {
         if (isTopLevel) {
             for (const t of spreads) {
                 const spread = t as ComponentInstance;
 
                 if (spread.id === tiedTo.locationId) {
-                    const res = spread.parameterValues.find(p => p.id === tiedTo.parameterId);
+                    const res = spread.parameterValues.find(p => p.id === tiedTo.id);
                     if (res) {
-                        return res.value;
+                        return [
+                            res.value,
+                            [
+                                'spreads',
+                                t.id,
+                                'parameterValues',
+                                tiedTo.id,
+                                'value',
+                            ],
+                        ];
                     }
                 }
             }
@@ -55,6 +65,11 @@ export default class ComponentInstanceFactory<R extends Component<ComponentOf<R>
                     components,
                     false,
                     component.contents,
+                    [
+                        'components',
+                        component.id,
+                        'contents',
+                    ],
                 );
 
                 if (lookupHere !== null) return lookupHere;
@@ -77,6 +92,13 @@ export default class ComponentInstanceFactory<R extends Component<ComponentOf<R>
                             components,
                             false,
                             childRes.value as ComponentInstanceFactory[],
+                            [
+                                'spreads',
+                                t.id,
+                                'parameterValues',
+                                idType,
+                                'value',
+                            ],
                         );
                         if (childLookup !== null) return childLookup;
                     }
@@ -89,12 +111,10 @@ export default class ComponentInstanceFactory<R extends Component<ComponentOf<R>
                 if (item.id === tiedTo.locationId) {
                     const res = item
                         .parameterMapping
-                        .find(p => p.id === tiedTo.parameterId);
+                        .find(p => p.id === tiedTo.id);
 
                     if (res) {
-                        if (!res.isReference) {
-                            return res.value!;
-                        } else {
+                        if (res.isReference) {
                             return ComponentInstanceFactory.resolveParameterValue(
                                 res.tiedTo!,
                                 spreads,
@@ -102,6 +122,11 @@ export default class ComponentInstanceFactory<R extends Component<ComponentOf<R>
                                 true,
                                 null,
                             );
+                        } else {
+                            return [
+                                res.value!,
+                                foundAt.concat(t.id, 'parameterMapping', tiedTo.id, 'value'),
+                            ];
                         }
                     }
                 }
@@ -118,16 +143,7 @@ export default class ComponentInstanceFactory<R extends Component<ComponentOf<R>
                         .parameterMapping
                         .find(p => p.id === idType);
                     if (childRes) {
-                        if (childRes.value !== null) {
-                            const childLookup = ComponentInstanceFactory.resolveParameterValue(
-                                tiedTo,
-                                spreads,
-                                components,
-                                false,
-                                childRes.value as ComponentInstanceFactory[],
-                            );
-                            if (childLookup !== null) return childLookup;
-                        } else {
+                        if (childRes.isReference) {
                             const resLookup = ComponentInstanceFactory.resolveParameterValue(
                                 childRes.tiedTo!,
                                 spreads,
@@ -142,17 +158,31 @@ export default class ComponentInstanceFactory<R extends Component<ComponentOf<R>
                                     spreads,
                                     components,
                                     false,
-                                    resLookup as ComponentInstanceFactory[],
+                                    resLookup[0] as ComponentInstanceFactory[],
+                                    resLookup[1],
                                 );
                                 if (childLookup !== null) return childLookup;
                             }
+                        } else {
+                            const childLookup = ComponentInstanceFactory.resolveParameterValue(
+                                tiedTo,
+                                spreads,
+                                components,
+                                false,
+                                childRes.value as ComponentInstanceFactory[],
+                                foundAt.concat(t.id, 'parameterMapping', idType),
+                            );
+                            if (childLookup !== null) return childLookup;
                         }
                     }
                 }
             }
         }
 
-        return null;
+        return [
+            null,
+            [],
+        ];
     }
 
     composeComponentInstance(magazine: Magazine) {
@@ -166,7 +196,7 @@ export default class ComponentInstanceFactory<R extends Component<ComponentOf<R>
                     magazine.components,
                     true,
                     null,
-                ) || 0),
+                )[0] || 0),
             })),
             this.id,
             this,
