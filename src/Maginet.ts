@@ -89,9 +89,10 @@ export default class Maginet {
         this.dataRenderer.renderList();
     }
 
-    update() {
-        this.spreadRenderer.renderCurrentSpread();
+    update(only?: ComponentInstanceFactory[]) {
+        this.spreadRenderer.renderCurrentSpread(only);
         this.spreadListRenderer.updatePreviews();
+        this.dataRenderer.renderList();
     }
 
     select(element: HTMLElement, instance: ComponentInstanceFactory) {

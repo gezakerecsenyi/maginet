@@ -11,6 +11,7 @@ export default class SpreadRenderer {
     private ctrlPressed: boolean = false;
     private selectionBox: HTMLDivElement | null = null;
     private isDraggingSelected: boolean = false;
+    private currentSpreadRender: HTMLElement | null = null;
 
     constructor(parent: HTMLElement, maginet: Maginet) {
         this.parent = parent;
@@ -72,26 +73,9 @@ export default class SpreadRenderer {
             this._selectedElement.classList.remove('selected');
         }
 
-        if (this.container && this.selectionBox) {
-            if (element) {
-                this._selectedElement = element;
-                this._selectedElement.classList.add('selected');
-
-                const elementRect = element.getBoundingClientRect();
-                const containerRect = this.container.getBoundingClientRect();
-
-                this.selectionBox.style.top = `${(elementRect.top - containerRect.top) / this.zoom}px`;
-                this.selectionBox.style.left = `${(elementRect.left - containerRect.left) / this.zoom}px`;
-                this.selectionBox.style.width = `${elementRect.width / this.zoom}px`;
-                this.selectionBox.style.height = `${elementRect.height / this.zoom}px`;
-                this.selectionBox.style.display = 'block';
-            } else {
-                this.selectionBox.style.display = 'none';
-            }
-        } else {
-            this.renderCurrentSpread();
-            this.updateView();
-            this.selectedElement = element;
+        this._selectedElement = element;
+        if (this.selectedElement) {
+            this.selectedElement.classList.add('selected');
         }
 
         this.updateView();
@@ -133,7 +117,7 @@ export default class SpreadRenderer {
         }
 
         if (event.button === 0) {
-            if (event.target === this.selectedElement || event.target === this.selectionBox) {
+            if (event.target && (event.target as HTMLElement).classList.contains('selection-box-component')) {
                 this.isDraggingSelected = true;
             }
         }
@@ -197,15 +181,28 @@ export default class SpreadRenderer {
                     );
             }
 
-            this.renderCurrentSpread([this.selectedInstance]);
+            this.maginet.update([this.selectedInstance]);
         }
     }
 
     updateView() {
-        if (this.container) {
+        if (this.container && this.selectionBox) {
             this.container.style.scale = this.zoom.toString();
             this.container.style.top = `${this.y}px`;
             this.container.style.left = `${this.x}px`;
+
+            if (this.selectedElement) {
+                const elementRect = this.selectedElement.getBoundingClientRect();
+                const containerRect = this.container.getBoundingClientRect();
+
+                this.selectionBox.style.top = `${(elementRect.top - containerRect.top) / this.zoom}px`;
+                this.selectionBox.style.left = `${(elementRect.left - containerRect.left) / this.zoom}px`;
+                this.selectionBox.style.width = `${elementRect.width / this.zoom}px`;
+                this.selectionBox.style.height = `${elementRect.height / this.zoom}px`;
+                this.selectionBox.style.display = 'block';
+            } else {
+                this.selectionBox.style.display = 'none';
+            }
         } else {
             this.renderCurrentSpread();
             this.updateView();
@@ -237,8 +234,13 @@ export default class SpreadRenderer {
     }
 
     renderCurrentSpread(only?: ComponentInstanceFactory[]) {
-        const container = document.createElement('div');
-        container.className = 'preview-motion-container';
+        if (!this.container) {
+            const container = document.createElement('div');
+            container.className = 'preview-motion-container';
+
+            this.container = container;
+            this.parent.replaceChildren(this.container);
+        }
 
         const spread = this
             .maginet
@@ -247,14 +249,31 @@ export default class SpreadRenderer {
             .find(e => e.id === this.maginet.currentSpreadId)!
             .render(this.maginet);
 
-        const selectionBox = document.createElement('div');
-        selectionBox.className = 'selection-box hidden';
-        this.selectionBox = selectionBox;
+        if (this.currentSpreadRender) {
+            this.currentSpreadRender.replaceWith(spread);
+        } else {
+            this.container.appendChild(spread);
+        }
+        this.currentSpreadRender = spread;
 
-        container.replaceChildren(spread, selectionBox);
+        if (!this.selectionBox) {
+            const selectionBox = document.createElement('div');
+            selectionBox.className = 'selection-box';
 
-        this.parent.replaceChildren(container);
-        this.container = container;
+            [
+                'l',
+                'r',
+                't',
+                'b',
+            ].forEach(side => {
+                const sideComponent = document.createElement('div');
+                sideComponent.className = `selection-box-component selection-side-${side}`;
+                selectionBox.appendChild(sideComponent);
+            });
+
+            this.selectionBox = selectionBox;
+            this.container.appendChild(this.selectionBox);
+        }
 
         this.updateView();
     }

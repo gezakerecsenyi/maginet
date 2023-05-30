@@ -73,7 +73,5 @@ export default class DataRenderer {
 
         list.replaceChildren(...formatProperties(this.maginet.magazine.spreads));
         this.parent.replaceChildren(list);
-
-        console.log('successfully rendered list');
     }
 }
