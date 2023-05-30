@@ -1,4 +1,5 @@
 import Maginet from '../Maginet';
+import Renderer from '../render/Renderer';
 
 export default class SpreadListRenderer {
     private container: HTMLElement;
@@ -19,7 +20,7 @@ export default class SpreadListRenderer {
                 .maginet
                 .magazine
                 .spreads
-                .map((e, i) => {
+                .map((spread, i) => {
                     const element = document.createElement('div');
                     element.className = 'spread-item';
 
@@ -27,7 +28,7 @@ export default class SpreadListRenderer {
                     preview.className = 'spread-preview';
                     preview.style.left = `${totalWidth * (1 - scaleFactor) / 2}px`;
                     preview.style.top = `${totalWidth * (297 / 420) * (1 - scaleFactor) / 2}px`;
-                    const previewContents = e.render(this.maginet);
+                    const previewContents = spread.render(new Renderer(this.maginet, false));
                     previewContents.style.transform = transformFactor;
                     preview.replaceChildren(previewContents);
 
@@ -37,7 +38,7 @@ export default class SpreadListRenderer {
                     element.replaceChildren(preview, label);
 
                     element.onclick = () => {
-                        this.maginet.currentSpreadId = e.id;
+                        this.maginet.currentSpreadId = spread.id;
                     }
 
                     return element;

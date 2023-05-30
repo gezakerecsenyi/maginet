@@ -1,7 +1,7 @@
-import Maginet from '../Maginet';
 import { DefaultParameterId, ParameterValue } from '../types';
 import Component from './Component';
 import ComponentInstanceFactory from './ComponentInstanceFactory';
+import Renderer from './Renderer';
 
 export default class ComponentInstance<T extends string = string> {
     public component: Component<T>;
@@ -21,7 +21,7 @@ export default class ComponentInstance<T extends string = string> {
         this.id = id;
     }
 
-    render(maginet: Maginet): HTMLElement {
-        return this.component.render(this.parameterValues, this.fromFactory, maginet);
+    render(renderer: Renderer): HTMLElement {
+        return this.component.render(this.parameterValues, this.fromFactory, renderer);
     }
 }

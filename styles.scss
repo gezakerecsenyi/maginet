@@ -55,6 +55,7 @@ body {
           position: absolute;
           top: 0;
           left: 0;
+          overflow: hidden;
           width: inherit;
           height: inherit;
 
@@ -80,6 +81,14 @@ body {
       position: relative;
       overflow: hidden;
       width: 60vw;
+
+      &.editing-by-value {
+
+      }
+
+      &.editing-by-reference {
+        border-color: $purple;
+      }
 
       .preview-motion-container {
         position: absolute;

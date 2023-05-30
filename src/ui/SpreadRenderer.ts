@@ -1,7 +1,14 @@
+import getInstanceId from '../lib/utils/getInstanceId';
 import Size from '../lib/utils/Size';
 import Maginet from '../Maginet';
 import ComponentInstanceFactory from '../render/ComponentInstanceFactory';
+import Renderer from '../render/Renderer';
 import { DefaultParameterId, SizeUnit } from '../types';
+
+export enum EditMode {
+    Reference = 'reference',
+    Value = 'value',
+}
 
 export default class SpreadRenderer {
     private parent: HTMLElement;
@@ -27,13 +34,45 @@ export default class SpreadRenderer {
         this.parent.addEventListener('wheel', this.handleScrollWheel.bind(this));
     }
 
-    private _selectedElement: HTMLElement | null = null;
+    private _editMode = EditMode.Value;
+
+    get editMode() {
+        return this._editMode;
+    }
+
+    set editMode(value: EditMode) {
+        this.parent?.classList.remove(`editing-by-${this.editMode}`);
+        this._editMode = value;
+        this.parent?.classList.add(`editing-by-${value}`);
+    }
 
     get selectedElement() {
-        return this._selectedElement;
+        if (this.selectedInstance) {
+            return document.getElementById(getInstanceId(this.selectedInstance));
+        } else {
+            return null;
+        }
     }
 
     private _selectedInstance: ComponentInstanceFactory | null = null;
+
+    get selectedInstance() {
+        return this._selectedInstance;
+    }
+
+    set selectedInstance(value: ComponentInstanceFactory | null) {
+        if (this.selectedElement) {
+            this.selectedElement.classList.remove('selected');
+        }
+
+        this._selectedInstance = value;
+
+        if (this.selectedElement) {
+            this.selectedElement.classList.add('selected');
+        }
+
+        this.updateView();
+    }
 
     private _zoom: number = 1;
 
@@ -68,32 +107,15 @@ export default class SpreadRenderer {
         this.updateView();
     }
 
-    set selectedElement(element: HTMLElement | null) {
-        if (this._selectedElement) {
-            this._selectedElement.classList.remove('selected');
-        }
-
-        this._selectedElement = element;
-        if (this.selectedElement) {
-            this.selectedElement.classList.add('selected');
-        }
-
-        this.updateView();
-    }
-
-    get selectedInstance() {
-        return this._selectedInstance;
-    }
-
-    set selectedInstance(value: ComponentInstanceFactory | null) {
-        this._selectedInstance = value;
-        this.updateView();
-    }
-
     handleKeyDown(event: KeyboardEvent) {
         if (event.key === 'Control') {
             event.preventDefault();
             this.ctrlPressed = true;
+        }
+
+        if (event.key === 'Tab') {
+            event.preventDefault();
+            this.editMode = this.editMode === EditMode.Value ? EditMode.Reference : EditMode.Value;
         }
     }
 
@@ -119,6 +141,8 @@ export default class SpreadRenderer {
         if (event.button === 0) {
             if (event.target && (event.target as HTMLElement).classList.contains('selection-box-component')) {
                 this.isDraggingSelected = true;
+            } else {
+                this.selectedInstance = null;
             }
         }
     }
@@ -145,40 +169,58 @@ export default class SpreadRenderer {
 
         if (this.isDraggingSelected && this.selectedInstance) {
             event.preventDefault();
-            const xParameter = this
-                .selectedInstance
-                .parameterMapping
-                .find(e => e.parameterId === DefaultParameterId.X);
 
-            if (xParameter?.tiedTo === null) {
-                this.selectedInstance.parameterMapping = this
+            const parameterDescriptors = [
+                {
+                    id: DefaultParameterId.X,
+                    offset: event.movementX,
+                },
+                {
+                    id: DefaultParameterId.Y,
+                    offset: event.movementY,
+                },
+            ];
+            for (const parameterDescriptor of parameterDescriptors) {
+                const parameterHere = this
                     .selectedInstance
                     .parameterMapping
-                    .map(e => e.parameterId === DefaultParameterId.X ?
-                        {
-                            ...e,
-                            value: (e.value as Size).add(new Size(event.movementX / this.zoom, SizeUnit.PX)),
-                        } :
-                        e,
-                    );
-            }
+                    .find(e => e.id === parameterDescriptor.id);
+                const addend = new Size(parameterDescriptor.offset / this.zoom, SizeUnit.PX);
 
-            const yParameter = this
-                .selectedInstance
-                .parameterMapping
-                .find(e => e.parameterId === DefaultParameterId.Y);
+                if (!parameterHere?.isReference) {
+                    this
+                        .selectedInstance
+                        .parameterMapping
+                        .updateById(
+                            parameterDescriptor.id,
+                            {
+                                value: (parameterHere!.value as Size).add(addend),
+                            },
+                        );
+                } else if (parameterHere) {
+                    if (this.editMode === EditMode.Value) {
+                        let resolvedValue = ComponentInstanceFactory.resolveParameterValue(
+                            parameterHere.tiedTo!,
+                            this.maginet.magazine.spreads,
+                            this.maginet.magazine.components,
+                            true,
+                            null,
+                        );
 
-            if (yParameter?.tiedTo === null) {
-                this.selectedInstance.parameterMapping = this
-                    .selectedInstance
-                    .parameterMapping
-                    .map(e => e.parameterId === DefaultParameterId.Y ?
-                        {
-                            ...e,
-                            value: (e.value as Size).add(new Size(event.movementY / this.zoom, SizeUnit.PX)),
-                        } :
-                        e,
-                    );
+                        if (resolvedValue !== null) {
+                            this
+                                .selectedInstance
+                                .parameterMapping
+                                .updateById(
+                                    parameterDescriptor.id,
+                                    {
+                                        value: (resolvedValue as Size).add(addend),
+                                        isReference: false,
+                                    },
+                                );
+                        }
+                    }
+                }
             }
 
             this.maginet.update([this.selectedInstance]);
@@ -247,7 +289,7 @@ export default class SpreadRenderer {
             .magazine
             .spreads
             .find(e => e.id === this.maginet.currentSpreadId)!
-            .render(this.maginet);
+            .render(new Renderer(this.maginet));
 
         if (this.currentSpreadRender) {
             this.currentSpreadRender.replaceWith(spread);
@@ -279,12 +321,10 @@ export default class SpreadRenderer {
     }
 
     select(element: HTMLElement, instance: ComponentInstanceFactory) {
-        this.selectedElement = element;
         this.selectedInstance = instance;
     }
 
     deselect() {
-        this.selectedElement = null;
         this.selectedInstance = null;
     }
 }

@@ -1,9 +1,9 @@
 import getInstanceId from '../lib/utils/getInstanceId';
-import Maginet from '../Maginet';
 import { DefaultParameterId, Parameter, ParameterType, ParameterValue } from '../types';
 import ComponentInstanceFactory from './ComponentInstanceFactory';
+import Renderer from './Renderer';
 
-export type RenderMethod<T extends string> = (parameterValue: ParameterValue<T>[], maginet: Maginet) => HTMLElement;
+export type RenderMethod<T extends string> = (parameterValue: ParameterValue<T>[], renderer: Renderer) => HTMLElement;
 
 export interface ParametersFrom<T extends string> extends Omit<Parameter, 'id'> {
     id: T | DefaultParameterId,
@@ -65,14 +65,13 @@ export default class Component<T extends string = string> {
     render(
         parameterValue: ParameterValue<T>[],
         me: ComponentInstanceFactory<Component<T | DefaultParameterId>> | null,
-        maginet: Maginet,
-        interactable: boolean = true,
+        renderer: Renderer,
     ) {
-        const renderRes = this.renderMethod(parameterValue, maginet);
+        const renderRes = this.renderMethod(parameterValue, renderer);
 
-        if (interactable && me) {
+        if (renderer.interactable && me) {
             renderRes.setAttribute('id', getInstanceId(me));
-            return maginet.makeSelectable(renderRes, me as ComponentInstanceFactory<any>);
+            return renderer.maginet.makeSelectable(renderRes, me as ComponentInstanceFactory<any>);
         } else {
             return renderRes;
         }

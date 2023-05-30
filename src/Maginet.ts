@@ -34,26 +34,33 @@ export default class Maginet {
                     Spread,
                     [
                         {
+                            id: DefaultParameterId.LayerDepth,
+                            value: new Size(40, SizeUnit.MM),
+                        },
+                        {
                             id: DefaultParameterId.Children,
                             value: [
                                 new ComponentInstanceFactory(
                                     TextSpan,
                                     [
                                         {
-                                            parameterId: 'text',
-                                            tiedTo: null,
-                                            value: 'Testing 123!'
+                                            id: 'text',
+                                            value: 'Testing 123!',
+                                            isReference: false,
                                         },
                                         {
-                                            parameterId: DefaultParameterId.X,
-                                            tiedTo: null,
-                                            value: new Size(120, SizeUnit.MM),
+                                            id: DefaultParameterId.X,
+                                            tiedTo: {
+                                                locationId: '0',
+                                                parameterId: DefaultParameterId.LayerDepth,
+                                            },
+                                            isReference: true,
                                         },
                                         {
-                                            parameterId: DefaultParameterId.Y,
-                                            tiedTo: null,
+                                            id: DefaultParameterId.Y,
+                                            isReference: false,
                                             value: new Size(80, SizeUnit.MM),
-                                        }
+                                        },
                                     ],
                                     'text0'
                                 )

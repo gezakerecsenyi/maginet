@@ -1,28 +1,30 @@
+import SearchableMap from '../lib/utils/SearchableMap';
 import { DefaultParameterId, Magazine, ParameterValueType } from '../types';
 import Component from './Component';
 import ComponentInstance from './ComponentInstance';
 
 export interface ParameterAssociationDescriptor {
     locationId: string;
-    parameterId: string;
+    parameterId: DefaultParameterId | string;
 }
 
 export interface ParameterCalculator<T extends string> {
-    parameterId: T;
+    id: T;
     value?: ParameterValueType;
-    tiedTo: ParameterAssociationDescriptor | null;
+    tiedTo?: ParameterAssociationDescriptor;
+    isReference: boolean;
 }
 
 export type ComponentOf<R> = R extends Component<infer U> ? (U | DefaultParameterId) : never;
 
 export default class ComponentInstanceFactory<R extends Component<ComponentOf<R>> = Component> {
     public component;
-    public parameterMapping: ParameterCalculator<ComponentOf<R>>[];
+    public parameterMapping: SearchableMap<ParameterCalculator<ComponentOf<R>>>;
     public id: string;
 
     constructor(component: R, parameterMapping: ParameterCalculator<ComponentOf<R>>[], id: string) {
         this.component = component;
-        this.parameterMapping = parameterMapping;
+        this.parameterMapping = new SearchableMap(...parameterMapping);
         this.id = id;
     }
 
@@ -87,14 +89,14 @@ export default class ComponentInstanceFactory<R extends Component<ComponentOf<R>
                 if (item.id === tiedTo.locationId) {
                     const res = item
                         .parameterMapping
-                        .find(p => p.parameterId === tiedTo.parameterId);
+                        .find(p => p.id === tiedTo.parameterId);
 
                     if (res) {
-                        if (res.tiedTo === null) {
+                        if (!res.isReference) {
                             return res.value!;
                         } else {
                             return ComponentInstanceFactory.resolveParameterValue(
-                                res.tiedTo,
+                                res.tiedTo!,
                                 spreads,
                                 components,
                                 true,
@@ -114,7 +116,7 @@ export default class ComponentInstanceFactory<R extends Component<ComponentOf<R>
                 ]) {
                     const childRes = item
                         .parameterMapping
-                        .find(p => p.parameterId === idType);
+                        .find(p => p.id === idType);
                     if (childRes) {
                         if (childRes.value !== null) {
                             const childLookup = ComponentInstanceFactory.resolveParameterValue(
@@ -157,7 +159,7 @@ export default class ComponentInstanceFactory<R extends Component<ComponentOf<R>
         return new ComponentInstance<ComponentOf<R>>(
             this.component,
             this.parameterMapping.map(p => ({
-                ...this.component.parameters.find(e => e.id == p.parameterId)!,
+                ...this.component.parameters.find(e => e.id == p.id)!,
                 value: p.value ?? (ComponentInstanceFactory.resolveParameterValue(
                     p.tiedTo!,
                     magazine.spreads,
