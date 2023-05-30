@@ -101,6 +101,7 @@ body {
 
           .selection-box-component {
             position: absolute;
+            cursor: move;
             pointer-events: all;
             border-width: 1px;
             border-color: rgba(0, 0, 0, 0.8);

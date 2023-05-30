@@ -1,3 +1,4 @@
+import getDefaultValueForType from '../lib/utils/getDefaultValueForType';
 import getInstanceId from '../lib/utils/getInstanceId';
 import { DefaultParameterId, Parameter, ParameterType, ParameterValue } from '../types';
 import ComponentInstanceFactory from './ComponentInstanceFactory';
@@ -16,6 +17,7 @@ export default class Component<T extends string = string> {
     public renderMethod: RenderMethod<T>;
     public displayName: string;
     public isSelectable: boolean;
+    public defaultParameterValues: ParameterValue<T>[];
 
     constructor(
         parameters: ParametersFrom<T>[],
@@ -25,6 +27,7 @@ export default class Component<T extends string = string> {
         id: string,
         displayName: string,
         isSelectable: boolean = true,
+        defaultParameterValues: ParameterValue<T>[] = [],
     ) {
         this.isSelectable = isSelectable;
         this.displayName = displayName;
@@ -58,6 +61,19 @@ export default class Component<T extends string = string> {
                     []
             ),
         ];
+        this.defaultParameterValues = this
+            .parameters
+            .map(e => {
+                const lookup = defaultParameterValues.find(d => d.id === e.id);
+                if (lookup) {
+                    return lookup;
+                }
+
+                return {
+                    id: e.id,
+                    value: getDefaultValueForType(e.type),
+                };
+            });
         this.renderMethod = renderMethod;
         this.id = id;
     }

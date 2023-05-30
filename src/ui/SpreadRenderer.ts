@@ -18,7 +18,6 @@ export default class SpreadRenderer {
     private isPanning: boolean = false;
     private ctrlPressed: boolean = false;
     private selectionBox: HTMLDivElement | null = null;
-    private isDraggingSelected: boolean = false;
     private currentSpreadRender: HTMLElement | null = null;
 
     constructor(parent: HTMLElement, maginet: Maginet) {
@@ -33,6 +32,19 @@ export default class SpreadRenderer {
         this.parent.addEventListener('mousemove', this.handleMouseMove.bind(this));
         this.parent.addEventListener('mouseleave', this.handleMouseLeave.bind(this));
         this.parent.addEventListener('wheel', this.handleScrollWheel.bind(this));
+    }
+
+    private _isDraggingSelected: boolean = false;
+
+    get isDraggingSelected(): boolean {
+        return this._isDraggingSelected;
+    }
+
+    set isDraggingSelected(value: boolean) {
+        if ((this.isDraggingSelected && !value) || (!this.isDraggingSelected && value)) {
+            this.maginet.captureHistorySnapshot();
+        }
+        this._isDraggingSelected = value;
     }
 
     private _editMode = EditMode.Value;
@@ -109,6 +121,18 @@ export default class SpreadRenderer {
     }
 
     handleKeyDown(event: KeyboardEvent) {
+        if (event.key === 'z' && event.ctrlKey) {
+            event.preventDefault();
+            this.maginet.undo();
+            return;
+        }
+
+        if (event.key === 'y' && event.ctrlKey) {
+            event.preventDefault();
+            this.maginet.redo();
+            return;
+        }
+
         if (event.key === 'Control') {
             event.preventDefault();
             this.ctrlPressed = true;

@@ -11,4 +11,14 @@ export const Spread = new Component<DefaultParameterId>(
     'Spread',
     'A3 Spread',
     false,
+    [
+        {
+            id: DefaultParameterId.X,
+            value: 0,
+        },
+        {
+            id: DefaultParameterId.Y,
+            value: 0,
+        },
+    ],
 );

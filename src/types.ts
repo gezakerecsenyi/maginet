@@ -59,7 +59,7 @@ export interface Color {
     type: ColorType;
     gradientType?: GradientType;
     solidColor?: ColorPrimitive;
-    gradientColor: GradientPoint[];
+    gradientColor?: GradientPoint[];
 }
 
 export type Font = string;
@@ -85,4 +85,8 @@ export type ParameterValueType = number | string | Color | Font | Size | Angle |
 export interface ParameterValue<T extends string = string> {
     id: T | DefaultParameterId;
     value: ParameterValueType,
+}
+
+export interface HistoryState extends Magazine {
+
 }

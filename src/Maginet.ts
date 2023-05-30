@@ -1,9 +1,10 @@
+import cloneDeep from 'lodash/cloneDeep';
 import { Spread } from './lib/Spread';
 import { TextSpan } from './lib/TextSpan';
 import Size from './lib/utils/Size';
 import ComponentInstance from './render/ComponentInstance';
 import ComponentInstanceFactory from './render/ComponentInstanceFactory';
-import { DefaultParameterId, Magazine, SizeUnit } from './types';
+import { DefaultParameterId, HistoryState, Magazine, SizeUnit } from './types';
 import DataRenderer from './ui/DataRenderer';
 import SpreadListRenderer from './ui/SpreadListRenderer';
 import SpreadRenderer from './ui/SpreadRenderer';
@@ -11,11 +12,12 @@ import { PopulatedWindow } from './window';
 
 export default class Maginet {
     public magazine: Magazine;
-    public pxInMM: number;
     public spreadRenderer: SpreadRenderer;
     public spreadListRenderer: SpreadListRenderer;
     public dataRenderer: DataRenderer;
+    public pxInMM: number;
     public pxInPT: number;
+    private history: HistoryState[] = [];
 
     constructor(
         spreadListContainer: HTMLElement,
@@ -62,10 +64,10 @@ export default class Maginet {
                                             value: new Size(80, SizeUnit.MM),
                                         },
                                     ],
-                                    'text0'
-                                )
-                            ]
-                        }
+                                    'text0',
+                                ),
+                            ],
+                        },
                     ],
                     '0',
                 ),
@@ -80,6 +82,24 @@ export default class Maginet {
         (window as PopulatedWindow).pxInPT = this.pxInPT;
 
         this.currentSpreadId = '0';
+
+        this.captureHistorySnapshot();
+    }
+
+    private _historyPointer = -1;
+
+    get historyPointer(): number {
+        return this._historyPointer;
+    }
+
+    set historyPointer(value: number) {
+        if (value >= 0 && value < this.history.length) {
+            this._historyPointer = value;
+
+            this.magazine = this.history[value];
+            console.log('reset magazine to', this.magazine);
+            this.update();
+        }
     }
 
     private _currentSpreadId!: string;
@@ -94,6 +114,24 @@ export default class Maginet {
 
         this.spreadRenderer.zoomToFit();
         this.dataRenderer.renderList();
+    }
+
+    undo() {
+        this.historyPointer--;
+    }
+
+    redo() {
+        this.historyPointer++;
+    }
+
+    captureHistorySnapshot() {
+        this.history = this.history.slice(0, this.historyPointer + 1).concat(cloneDeep(this.magazine));
+        this._historyPointer++;
+
+        if (this.history.length > 10) {
+            this._historyPointer -= this.history.length - 10;
+            this.history = this.history.slice(-10);
+        }
     }
 
     update(only?: ComponentInstanceFactory[]) {
