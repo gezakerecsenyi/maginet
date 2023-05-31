@@ -19,7 +19,7 @@ export type ComponentOf<R> = R extends Component<infer U> ? (U | DefaultParamete
 
 export default class ComponentInstanceFactory<R extends Component<ComponentOf<R>> = Component> {
     public component;
-    public parameterMapping: SearchableMap<ParameterCalculator<ComponentOf<R>>>;
+    public parameterMapping: SearchableMap<ComponentOf<R>, ParameterCalculator<ComponentOf<R>>>;
     public id: string;
 
     constructor(component: R, parameterMapping: ParameterCalculator<ComponentOf<R>>[], id: string) {
@@ -183,6 +183,14 @@ export default class ComponentInstanceFactory<R extends Component<ComponentOf<R>
             null,
             [],
         ];
+    }
+
+    static getInstanceId(instance: ComponentInstanceFactory<any>): string {
+        return `${instance.id}-${instance.component.id}`;
+    }
+
+    getInstanceId(): string {
+        return ComponentInstanceFactory.getInstanceId(this);
     }
 
     composeComponentInstance(magazine: Magazine) {

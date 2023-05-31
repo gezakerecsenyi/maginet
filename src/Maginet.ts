@@ -66,6 +66,54 @@ export default class Maginet {
                                     ],
                                     'text0',
                                 ),
+                                new ComponentInstanceFactory(
+                                    TextSpan,
+                                    [
+                                        {
+                                            id: 'text',
+                                            value: 'Test-2',
+                                            isReference: false,
+                                        },
+                                        {
+                                            id: DefaultParameterId.X,
+                                            tiedTo: {
+                                                locationId: '0',
+                                                id: DefaultParameterId.LayerDepth,
+                                            },
+                                            isReference: true,
+                                        },
+                                        {
+                                            id: DefaultParameterId.Y,
+                                            isReference: false,
+                                            value: new Size(100, SizeUnit.MM),
+                                        },
+                                    ],
+                                    'text1',
+                                ),
+                                new ComponentInstanceFactory(
+                                    TextSpan,
+                                    [
+                                        {
+                                            id: 'text',
+                                            value: 'Test-3',
+                                            isReference: false,
+                                        },
+                                        {
+                                            id: DefaultParameterId.X,
+                                            tiedTo: {
+                                                locationId: '0',
+                                                id: DefaultParameterId.LayerDepth,
+                                            },
+                                            isReference: true,
+                                        },
+                                        {
+                                            id: DefaultParameterId.Y,
+                                            isReference: false,
+                                            value: new Size(120, SizeUnit.MM),
+                                        },
+                                    ],
+                                    'text2',
+                                ),
                             ],
                         },
                     ],
@@ -140,23 +188,23 @@ export default class Maginet {
         this.dataRenderer.renderList();
     }
 
-    select(element: HTMLElement, instance: ComponentInstanceFactory) {
-        this.spreadRenderer.select(element, instance);
+    select(instance: ComponentInstanceFactory[]) {
+        this.spreadRenderer.selectOrReplace(instance);
     }
 
-    deselect() {
-        this.spreadRenderer.deselect();
+    deselectAll() {
+        this.spreadRenderer.deselectAll();
     }
 
     makeSelectable(element: HTMLElement, instance: ComponentInstanceFactory | null) {
-        element.onclick = (e) => {
-            e.stopPropagation();
-            if (instance?.component.isSelectable) {
-                this.select(element, instance);
-            } else {
-                this.deselect();
-            }
-        };
+        if (instance?.component.isSelectable) {
+            element.onclick = () => {
+                this.select([instance]);
+            };
+        } else {
+            element.style.pointerEvents = 'none';
+        }
+
         return element;
     }
 }

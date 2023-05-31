@@ -1,5 +1,4 @@
 import getDefaultValueForType from '../lib/utils/getDefaultValueForType';
-import getInstanceId from '../lib/utils/getInstanceId';
 import { DefaultParameterId, Parameter, ParameterType, ParameterValue } from '../types';
 import ComponentInstanceFactory from './ComponentInstanceFactory';
 import Renderer from './Renderer';
@@ -80,14 +79,14 @@ export default class Component<T extends string = string> {
 
     render(
         parameterValue: ParameterValue<T>[],
-        me: ComponentInstanceFactory<Component<T | DefaultParameterId>> | null,
+        srcInstance: ComponentInstanceFactory<Component<T | DefaultParameterId>> | null,
         renderer: Renderer,
     ) {
         const renderRes = this.renderMethod(parameterValue, renderer);
 
-        if (renderer.interactable && me) {
-            renderRes.setAttribute('id', getInstanceId(me));
-            return renderer.maginet.makeSelectable(renderRes, me as ComponentInstanceFactory<any>);
+        if (renderer.interactable && srcInstance) {
+            renderRes.setAttribute('id', srcInstance.getInstanceId());
+            return renderer.maginet.makeSelectable(renderRes, srcInstance as ComponentInstanceFactory<any>);
         } else {
             return renderRes;
         }

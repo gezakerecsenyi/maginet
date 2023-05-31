@@ -22,20 +22,32 @@ export default class DataRenderer {
                 const addPropertyEntry = (property: string, value: string | HTMLElement[]) => {
                     const entry = document.createElement('li');
 
-                    const propertyLabel = document.createElement('span');
-                    propertyLabel.className = 'property-label';
-                    propertyLabel.innerText = property;
-                    entry.appendChild(propertyLabel);
-
                     let valueLabel: HTMLElement;
                     if (typeof value === 'string') {
+                        const propertyLabel = document.createElement('span');
+                        propertyLabel.className = 'property-label';
+                        propertyLabel.innerText = property;
+                        entry.appendChild(propertyLabel);
+
                         valueLabel = document.createElement('span');
                         valueLabel.className = 'value-label';
                         valueLabel.innerText = value;
                     } else {
-                        valueLabel = document.createElement('ol');
+                        const propertyLabel = document.createElement('summary');
+                        propertyLabel.className = 'property-label';
+                        propertyLabel.innerText = property;
+
+                        valueLabel = document.createElement('details');
                         valueLabel.className = 'child-list';
-                        valueLabel.replaceChildren(...value);
+
+                        const childList = document.createElement('ol');
+                        childList.replaceChildren(...value);
+                        entry.appendChild(propertyLabel);
+
+                        valueLabel.appendChild(propertyLabel);
+                        valueLabel.appendChild(childList);
+
+                        entry.appendChild(valueLabel);
                     }
 
                     entry.appendChild(valueLabel);

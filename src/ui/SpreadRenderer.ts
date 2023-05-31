@@ -1,4 +1,4 @@
-import getInstanceId from '../lib/utils/getInstanceId';
+import areBBsIntersecting, { BasicDOMRect } from '../lib/utils/areBBsIntersecting';
 import Size from '../lib/utils/Size';
 import updateFromLocation from '../lib/utils/updateFromLocation';
 import Maginet from '../Maginet';
@@ -14,8 +14,8 @@ export enum EditMode {
 }
 
 interface MouseData {
-    clientX: number;
-    clientY: number;
+    x: number;
+    y: number;
 }
 
 export default class SpreadRenderer {
@@ -24,11 +24,12 @@ export default class SpreadRenderer {
     private container: HTMLElement | null = null;
     private isPanning: boolean = false;
     private ctrlPressed: boolean = false;
-    private selectionBox: HTMLDivElement | null = null;
+    private selectedElementIndicator: HTMLDivElement | null = null;
     private currentSpreadRender: HTMLElement | null = null;
     private toolbarRenderer: ToolbarRenderer;
     private selectionStart: MouseData | null = null;
     private dragSelectionBox: HTMLDivElement | null = null;
+    private topLevelInstances: [string, ComponentInstanceFactory][] = [];
 
     constructor(parent: HTMLElement, maginet: Maginet) {
         this.parent = parent;
@@ -40,7 +41,7 @@ export default class SpreadRenderer {
 
         this.parent.addEventListener('mousedown', this.handleMouseDown.bind(this));
         this.parent.addEventListener('mouseup', this.handleMouseUp.bind(this));
-        this.parent.addEventListener('mousemove', this.handleMouseMove.bind(this));
+        this.parent.addEventListener('mousemove', this.handleMouseMove.bind(this), true);
         this.parent.addEventListener('mouseleave', this.handleMouseLeave.bind(this));
         this.parent.addEventListener('wheel', this.handleScrollWheel.bind(this));
     }
@@ -75,17 +76,17 @@ export default class SpreadRenderer {
         this._selectedTool = value;
     }
 
-    private _isDraggingSelected: boolean = false;
+    private _isDraggingSelectedItem: boolean = false;
 
-    get isDraggingSelected(): boolean {
-        return this._isDraggingSelected;
+    get isDraggingSelectedItem(): boolean {
+        return this._isDraggingSelectedItem;
     }
 
-    set isDraggingSelected(value: boolean) {
-        if ((this.isDraggingSelected && !value) || (!this.isDraggingSelected && value)) {
+    set isDraggingSelectedItem(value: boolean) {
+        if ((this.isDraggingSelectedItem && !value) || (!this.isDraggingSelectedItem && value)) {
             this.maginet.captureHistorySnapshot();
         }
-        this._isDraggingSelected = value;
+        this._isDraggingSelectedItem = value;
     }
 
     private _editMode = EditMode.Value;
@@ -100,29 +101,32 @@ export default class SpreadRenderer {
         this.parent?.classList.add(`editing-by-${value}`);
     }
 
-    get selectedElement() {
-        if (this.selectedInstance) {
-            return document.getElementById(getInstanceId(this.selectedInstance));
+    get selectedElements() {
+        if (this.selectedInstances) {
+            return this.selectedInstances.map(e => document.getElementById(e.getInstanceId())!);
         } else {
             return null;
         }
     }
 
-    private _selectedInstance: ComponentInstanceFactory | null = null;
+    private _selectedInstances: ComponentInstanceFactory[] | null = null;
 
-    get selectedInstance() {
-        return this._selectedInstance;
+    get selectedInstances() {
+        return this._selectedInstances;
     }
 
-    set selectedInstance(value: ComponentInstanceFactory | null) {
-        if (this.selectedElement) {
-            this.selectedElement.classList.remove('selected');
+    set selectedInstances(value: ComponentInstanceFactory[] | null) {
+        if (this.selectedElements) {
+            this.selectedElements.map(e => e.classList.remove('selected'));
         }
 
-        this._selectedInstance = value;
+        this._selectedInstances = value?.length ? value.filter(
+            (q, i) => value
+                .findIndex(t => t.id === q.id) === i,
+        ) : null;
 
-        if (this.selectedElement) {
-            this.selectedElement.classList.add('selected');
+        if (this.selectedElements) {
+            this.selectedElements.map(e => e.classList.add('selected'));
         }
 
         this.updateView();
@@ -208,10 +212,30 @@ export default class SpreadRenderer {
         }
     }
 
-    toScaledDistance(data: MouseData) {
+    toScaledDistance(data: { x: number, y: number }) {
         return {
-            clientX: (data.clientX - this.container!.getBoundingClientRect().left) / this.zoom,
-            clientY: (data.clientY - this.container!.getBoundingClientRect().top) / this.zoom,
+            x: (data.x - this.container!.getBoundingClientRect().left) / this.zoom,
+            y: (data.y - this.container!.getBoundingClientRect().top) / this.zoom,
+        };
+    }
+
+    normalizeDOMRect(rect: BasicDOMRect): BasicDOMRect {
+        const scaledTopLeft = this.toScaledDistance({
+            x: rect.left,
+            y: rect.top,
+        });
+        const scaledBottomRight = this.toScaledDistance({
+            x: rect.right,
+            y: rect.bottom,
+        });
+
+        return {
+            left: scaledTopLeft.x,
+            right: scaledBottomRight.x,
+            top: scaledTopLeft.y,
+            bottom: scaledBottomRight.y,
+            height: scaledBottomRight.y - scaledTopLeft.y,
+            width: scaledBottomRight.x - scaledTopLeft.x,
         };
     }
 
@@ -222,14 +246,20 @@ export default class SpreadRenderer {
         }
 
         if (event.button === 0) {
-            if (event.target && (event.target as HTMLElement).classList.contains('selection-box-component')) {
-                this.isDraggingSelected = true;
-            } else if (this.container) {
-                this.selectedInstance = null;
+            const target = event.target as HTMLElement | null;
+            if (target && target.classList.contains('selection-box-component')) {
+                this.isDraggingSelectedItem = true;
+            } else if (
+                this.container && (
+                    target?.classList.contains(`-top-level-spread`) ||
+                    target?.getAttribute('id') === 'preview')
+            ) {
+                this.selectedInstances = null;
                 this.isDraggingWorkspace = true;
-                this.selectionStart = this.toScaledDistance(event);
-
-                // this.updateSelectionMarker(this.selectionStart);
+                this.selectionStart = this.toScaledDistance({
+                    x: event.clientX,
+                    y: event.clientY,
+                });
             }
         }
     }
@@ -241,22 +271,50 @@ export default class SpreadRenderer {
         }
 
         this.isDraggingWorkspace = false;
-        this.isDraggingSelected = false;
+        this.isDraggingSelectedItem = false;
     }
 
     handleMouseLeave(event: MouseEvent) {
         this.isPanning = false;
-        this.isDraggingSelected = false;
+        this.isDraggingSelectedItem = false;
     }
 
     updateSelectionMarker(data: MouseData) {
         if (this.isDraggingWorkspace && this.dragSelectionBox && this.selectionStart) {
             const mappedCoords = this.toScaledDistance(data);
 
-            this.dragSelectionBox.style.left = `${Math.min(this.selectionStart.clientX, mappedCoords.clientX)}px`;
-            this.dragSelectionBox.style.width = `${Math.abs(mappedCoords.clientX - this.selectionStart.clientX)}px`;
-            this.dragSelectionBox.style.top = `${Math.min(this.selectionStart.clientY, mappedCoords.clientY)}px`;
-            this.dragSelectionBox.style.height = `${Math.abs(mappedCoords.clientY - this.selectionStart.clientY)}px`;
+            const selectionBoundingBox: BasicDOMRect = {
+                left: Math.min(this.selectionStart.x, mappedCoords.x),
+                top: Math.min(this.selectionStart.y, mappedCoords.y),
+                width: Math.abs(mappedCoords.x - this.selectionStart.x),
+                height: Math.abs(mappedCoords.y - this.selectionStart.y),
+                right: 0,
+                bottom: 0,
+            };
+            selectionBoundingBox.right = selectionBoundingBox.left + selectionBoundingBox.width;
+            selectionBoundingBox.bottom = selectionBoundingBox.top + selectionBoundingBox.height;
+
+            this.dragSelectionBox.style.left = `${selectionBoundingBox.left}px`;
+            this.dragSelectionBox.style.top = `${selectionBoundingBox.top}px`;
+            this.dragSelectionBox.style.width = `${selectionBoundingBox.width}px`;
+            this.dragSelectionBox.style.height = `${selectionBoundingBox.height}px`;
+
+            for (const instance of this.topLevelInstances) {
+                const clientRect = document.getElementById(instance[0])?.getBoundingClientRect();
+
+                if (clientRect) {
+                    if (areBBsIntersecting(this.normalizeDOMRect(clientRect), selectionBoundingBox)) {
+                        this.selectedInstances = (this.selectedInstances || []).concat(instance[1]);
+                    } else if (!this.ctrlPressed && this.selectedInstances) {
+                        this.selectedInstances = this
+                            .selectedInstances
+                            .filter(e => e.id !== instance[1].id);
+                    }
+                } else {
+                    this.renderCurrentSpread();
+                    break;
+                }
+            }
         }
     }
 
@@ -268,91 +326,114 @@ export default class SpreadRenderer {
 
         this.updateSelectionMarker(event);
 
-        if (this.isDraggingSelected && this.selectedInstance) {
+        if (this.isDraggingSelectedItem && this.selectedInstances) {
+            event.stopPropagation();
             event.preventDefault();
 
             const parameterDescriptors = [
                 {
                     id: DefaultParameterId.X,
-                    offset: event.movementX,
+                    offset: event.movementX / this.zoom,
                 },
                 {
                     id: DefaultParameterId.Y,
-                    offset: event.movementY,
+                    offset: event.movementY / this.zoom,
                 },
             ];
-            for (const parameterDescriptor of parameterDescriptors) {
-                const parameterHere = this
-                    .selectedInstance
-                    .parameterMapping
-                    .find(e => e.id === parameterDescriptor.id);
-                const addend = new Size(parameterDescriptor.offset / this.zoom, SizeUnit.PX);
-
-                if (!parameterHere?.isReference) {
-                    this
-                        .selectedInstance
+            const alreadyUpdated: string[][] = [];
+            for (const instance of this.selectedInstances) {
+                for (const parameterDescriptor of parameterDescriptors) {
+                    const parameterHere = instance
                         .parameterMapping
-                        .updateById(
-                            parameterDescriptor.id,
-                            {
-                                value: (parameterHere!.value as Size).add(addend),
-                            },
-                        );
-                } else if (parameterHere) {
-                    let [resolvedValue, resolvedValueLocation] = ComponentInstanceFactory.resolveParameterValue(
-                        parameterHere.tiedTo!,
-                        this.maginet.magazine.spreads,
-                        this.maginet.magazine.components,
-                        true,
-                        null,
-                    );
+                        .find(e => e.id === parameterDescriptor.id);
+                    const addend = new Size(parameterDescriptor.offset, SizeUnit.PX);
 
-                    if (this.editMode === EditMode.Value) {
-                        if (resolvedValue !== null) {
-                            this
-                                .selectedInstance
-                                .parameterMapping
-                                .updateById(
-                                    parameterDescriptor.id,
-                                    {
-                                        value: (resolvedValue as Size).add(addend),
-                                        isReference: false,
-                                    },
-                                );
-                        }
-                    } else if (this.editMode === EditMode.Reference) {
-                        if (resolvedValueLocation.length) {
-                            updateFromLocation(
-                                this.maginet.magazine,
-                                (resolvedValue as Size).add(addend),
-                                resolvedValueLocation,
+                    if (!parameterHere?.isReference) {
+                        instance
+                            .parameterMapping
+                            .updateById(
+                                parameterDescriptor.id,
+                                {
+                                    value: (parameterHere!.value as Size).add(addend),
+                                },
                             );
+                    } else if (parameterHere) {
+                        let [resolvedValue, resolvedValueLocation] = ComponentInstanceFactory.resolveParameterValue(
+                            parameterHere.tiedTo!,
+                            this.maginet.magazine.spreads,
+                            this.maginet.magazine.components,
+                            true,
+                            null,
+                        );
+
+                        if (this.editMode === EditMode.Value) {
+                            if (resolvedValue !== null) {
+                                instance
+                                    .parameterMapping
+                                    .updateById(
+                                        parameterDescriptor.id,
+                                        {
+                                            value: (resolvedValue as Size).add(addend),
+                                            isReference: false,
+                                        },
+                                    );
+                            }
+                        } else if (this.editMode === EditMode.Reference) {
+                            if (
+                                resolvedValueLocation.length &&
+                                !alreadyUpdated.some(e => e
+                                    .every((q, i) => q === resolvedValueLocation[i]),
+                                )
+                            ) {
+                                updateFromLocation(
+                                    this.maginet.magazine,
+                                    (resolvedValue as Size).add(addend),
+                                    resolvedValueLocation,
+                                );
+                                alreadyUpdated.push(resolvedValueLocation);
+                            }
                         }
                     }
                 }
             }
 
-            this.maginet.update([this.selectedInstance]);
+            this.maginet.update(this.selectedInstances);
         }
     }
 
     updateView() {
-        if (this.container && this.selectionBox) {
+        if (this.container && this.selectedElementIndicator) {
             this.container.style.scale = this.zoom.toString();
             this.container.style.top = `${this.y}px`;
             this.container.style.left = `${this.x}px`;
 
-            if (this.selectedElement) {
-                const elementRect = this.selectedElement.getBoundingClientRect();
+            if (this.selectedElements) {
+                const boundingRects = this.selectedElements.map(e => e.getBoundingClientRect());
+
+                const elementsRect = {
+                    left: Math.min(...boundingRects.map(e => e.left)),
+                    right: Math.max(...boundingRects.map(e => e.right)),
+                    top: Math.min(...boundingRects.map(e => e.top)),
+                    bottom: Math.max(...boundingRects.map(e => e.bottom)),
+                };
+
                 const containerRect = this.container.getBoundingClientRect();
 
-                this.selectionBox.style.top = `${(elementRect.top - containerRect.top) / this.zoom}px`;
-                this.selectionBox.style.left = `${(elementRect.left - containerRect.left) / this.zoom}px`;
-                this.selectionBox.style.width = `${elementRect.width / this.zoom}px`;
-                this.selectionBox.style.height = `${elementRect.height / this.zoom}px`;
-                this.selectionBox.style.display = 'block';
+                this.selectedElementIndicator.style.top = `${
+                    (elementsRect.top - containerRect.top) / this.zoom
+                }px`;
+                this.selectedElementIndicator.style.left = `${
+                    (elementsRect.left - containerRect.left) / this.zoom
+                }px`;
+                this.selectedElementIndicator.style.width = `${
+                    (elementsRect.right - elementsRect.left) / this.zoom
+                }px`;
+                this.selectedElementIndicator.style.height = `${
+                    (elementsRect.bottom - elementsRect.top) / this.zoom
+                }px`;
+                this.selectedElementIndicator.style.display = 'block';
             } else {
-                this.selectionBox.style.display = 'none';
+                this.selectedElementIndicator.style.display = 'none';
             }
         } else {
             this.renderCurrentSpread();
@@ -393,21 +474,40 @@ export default class SpreadRenderer {
             this.parent.replaceChildren(this.container);
         }
 
-        const spread = this
+        const currentSpread = this
             .maginet
             .magazine
             .spreads
-            .find(e => e.id === this.maginet.currentSpreadId)!
-            .render(new Renderer(this.maginet));
+            .find(e => e.id === this.maginet.currentSpreadId)!;
+        const renderedSpread = currentSpread.render(new Renderer(this.maginet));
+        renderedSpread.classList.add('-top-level-spread');
+
+        this.topLevelInstances = [];
+        [
+            DefaultParameterId.Children,
+            DefaultParameterId.Contents,
+        ].forEach(source => {
+            this.topLevelInstances.push(
+                ...((
+                    currentSpread
+                        .parameterValues
+                        .find(e => e.id === source)
+                        ?.value as ComponentInstanceFactory[] | undefined
+                )?.map(e => [
+                    e.getInstanceId(),
+                    e,
+                ] as [string, ComponentInstanceFactory]) || []),
+            );
+        });
 
         if (this.currentSpreadRender) {
-            this.currentSpreadRender.replaceWith(spread);
+            this.currentSpreadRender.replaceWith(renderedSpread);
         } else {
-            this.container.appendChild(spread);
+            this.container.appendChild(renderedSpread);
         }
-        this.currentSpreadRender = spread;
+        this.currentSpreadRender = renderedSpread;
 
-        if (!this.selectionBox) {
+        if (!this.selectedElementIndicator) {
             const selectionBox = document.createElement('div');
             selectionBox.className = 'selection-box';
 
@@ -422,8 +522,8 @@ export default class SpreadRenderer {
                 selectionBox.appendChild(sideComponent);
             });
 
-            this.selectionBox = selectionBox;
-            this.container.appendChild(this.selectionBox);
+            this.selectedElementIndicator = selectionBox;
+            this.container.appendChild(this.selectedElementIndicator);
         }
 
         if (!this.dragSelectionBox) {
@@ -438,11 +538,17 @@ export default class SpreadRenderer {
         this.updateView();
     }
 
-    select(element: HTMLElement, instance: ComponentInstanceFactory) {
-        this.selectedInstance = instance;
+    selectOrReplace(instances: ComponentInstanceFactory[]) {
+        if (this.selectedInstances && this.ctrlPressed) {
+            this.selectedInstances = this.selectedInstances.concat(...instances);
+            return true;
+        } else {
+            this.selectedInstances = instances;
+            return false;
+        }
     }
 
-    deselect() {
-        this.selectedInstance = null;
+    deselectAll() {
+        this.selectedInstances = null;
     }
 }
