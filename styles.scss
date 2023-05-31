@@ -1,6 +1,8 @@
 $bg-dark: #313131;
-$almost-black: #0e0e0e;
+$bg-darker: #282828;
 $accent-dark: #131313;
+$almost-black: #0e0e0e;
+$translucent-white: rgba(255, 255, 255, 0.7);
 
 $purple: #b363ff;
 $orange: #e57600;
@@ -40,7 +42,7 @@ body {
 
   .block {
     height: 100vh;
-    border: 2px solid black;
+    border: 2px solid $almost-black;
     background-color: $bg-dark;
 
     &#spreads {
@@ -76,7 +78,7 @@ body {
           width: 100%;
           margin: 0;
           text-align: center;
-          color: rgba(255, 255, 255, 0.7);
+          color: $translucent-white;
         }
       }
     }
@@ -98,6 +100,34 @@ body {
         border-color: $orange;
       }
 
+      #suboptions {
+        position: absolute;
+        z-index: 1001;
+        width: 100px;
+        border: 2px solid $almost-black;
+        border-radius: 3px;
+        background-color: $bg-dark;
+
+        button {
+          font-size: 0.8rem;
+          width: 100%;
+          padding: 8px 4px;
+          cursor: pointer;
+          color: $translucent-white;
+          border: none;
+          background-color: $bg-dark;
+
+          &:not(:last-child) {
+            border-bottom: 2px solid $almost-black;
+          }
+
+          &:hover {
+            color: white;
+            background-color: $bg-darker;
+          }
+        }
+      }
+
       #toolbar {
         position: absolute;
         z-index: 1000;
@@ -111,10 +141,11 @@ body {
         place-items: center;
 
         button {
+          font-size: 0.8rem;
           margin-right: 10px;
           padding: 4px 6px;
           cursor: pointer;
-          color: rgba(255, 255, 255, 0.7);
+          color: $translucent-white;
           border: 2px solid $almost-black;
           border-radius: 3px;
           background: $bg-dark;
@@ -200,6 +231,29 @@ body {
       overflow: auto;
       width: 20vw;
       color: white;
+
+      li {
+        display: block;
+        width: 20vw;
+
+        &:not(:first-child) {
+          padding-top: 10px;
+          border-top: 2px solid $almost-black;
+        }
+
+        &:not(:last-child) {
+          padding-bottom: 10px;
+        }
+
+        .property-label {
+          font-weight: bold;
+          margin-right: 10px;
+        }
+      }
+
+      details[open] > summary {
+        margin-bottom: 10px;
+      }
     }
   }
 }

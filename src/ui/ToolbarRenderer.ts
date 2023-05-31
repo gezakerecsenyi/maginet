@@ -23,6 +23,10 @@ export interface ToolbarOption {
 }
 
 export default class ToolbarRenderer {
+    private suboptionsMenu: HTMLDivElement | null = null;
+
+    private _selectedToolOption: OptionType = OptionType.Cursor;
+
     static options: ToolbarOption[] = [
         {
             tooltip: 'Cursor',
@@ -77,6 +81,17 @@ export default class ToolbarRenderer {
     private container: HTMLDivElement | null = null;
     private maginet: Maginet;
 
+    get selectedToolOption(): OptionType {
+        return this._selectedToolOption;
+    }
+
+    set selectedToolOption(value: OptionType) {
+        document.getElementById(`tool-${this.selectedToolOption}`)?.classList.remove('active');
+        document.getElementById(`tool-${value}`)?.classList.add('active');
+
+        this._selectedToolOption = value;
+    }
+
     constructor(parent: HTMLElement, maginet: Maginet) {
         this.parent = parent;
         this.maginet = maginet;
@@ -88,6 +103,13 @@ export default class ToolbarRenderer {
             const container = document.createElement('div');
             container.setAttribute('id', 'toolbar');
             this.container = container;
+
+            const suboptionsMenu = document.createElement('div');
+            suboptionsMenu.setAttribute('id', 'suboptions');
+            this.suboptionsMenu = suboptionsMenu;
+            this.suboptionsMenu.style.display = 'none';
+
+            this.parent.appendChild(this.suboptionsMenu);
             this.parent.appendChild(this.container);
 
             ToolbarRenderer.options.forEach(option => {
@@ -97,6 +119,33 @@ export default class ToolbarRenderer {
                 button.onclick = () => {
                     if (!option.subOptions) {
                         this.maginet.spreadRenderer.selectedTool = option.optionType;
+                        this.selectedToolOption = option.optionType;
+
+                        if (this.suboptionsMenu) {
+                            this.suboptionsMenu.style.display = 'none';
+                        }
+                    } else if (this.suboptionsMenu && this.container) {
+                        this.suboptionsMenu.style.top = `${button.getBoundingClientRect().bottom}px`;
+                        this.suboptionsMenu.style.left =
+                            `${button.getBoundingClientRect().left - this.container.getBoundingClientRect().left}px`;
+                        this.suboptionsMenu.style.display = 'block';
+                        this.suboptionsMenu.replaceChildren();
+
+                        for (const suboption of option.subOptions) {
+                            const button = document.createElement('button');
+                            button.className = 'suboption-button';
+                            button.innerText = suboption.tooltip;
+                            button.onclick = () => {
+                                this.selectedToolOption = option.optionType;
+                                this.maginet.spreadRenderer.selectedTool = suboption.optionType;
+
+                                if (this.suboptionsMenu) {
+                                    this.suboptionsMenu.style.display = 'none';
+                                }
+                            };
+
+                            this.suboptionsMenu.appendChild(button);
+                        }
                     }
                 };
 

@@ -70,9 +70,6 @@ export default class SpreadRenderer {
     }
 
     set selectedTool(value: OptionType) {
-        document.getElementById(`tool-${this.selectedTool}`)?.classList.remove('active');
-        document.getElementById(`tool-${value}`)?.classList.add('active');
-
         this._selectedTool = value;
     }
 

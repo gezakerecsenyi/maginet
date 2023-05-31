@@ -16,7 +16,9 @@ export default class DataRenderer {
         const list = document.createElement('ol');
         const formatProperties = (list: ComponentInstance[]): HTMLElement[] => {
             return list.map(instance => {
-                const elementHere = document.createElement('li');
+                const elementContainer = document.createElement('li');
+                const elementHere = document.createElement('details');
+
                 const listHere = document.createElement('ul');
 
                 const addPropertyEntry = (property: string, value: string | HTMLElement[]) => {
@@ -55,7 +57,9 @@ export default class DataRenderer {
                     listHere.appendChild(entry);
                 };
 
-                addPropertyEntry('Name', instance.component.displayName);
+                const label = document.createElement('summary');
+                label.className = 'property-label';
+                label.innerText = instance.component.displayName;
 
                 instance.parameterValues.forEach(parameter => {
                     const parameterDescription = instance
@@ -78,8 +82,9 @@ export default class DataRenderer {
                     }
                 });
 
-                elementHere.replaceChildren(listHere);
-                return elementHere;
+                elementHere.replaceChildren(label, listHere);
+                elementContainer.replaceChildren(elementHere);
+                return elementContainer;
             });
         };
 
