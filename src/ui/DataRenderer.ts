@@ -1,7 +1,7 @@
 import Maginet from '../Maginet';
 import ComponentInstance from '../render/ComponentInstance';
 import ComponentInstanceFactory from '../render/ComponentInstanceFactory';
-import { ParameterType } from '../types';
+import { ParameterType, SpecialClasses } from '../types';
 
 export default class DataRenderer {
     private parent: HTMLElement;
@@ -27,16 +27,16 @@ export default class DataRenderer {
                     let valueLabel: HTMLElement;
                     if (typeof value === 'string') {
                         const propertyLabel = document.createElement('span');
-                        propertyLabel.className = 'property-label';
+                        propertyLabel.className = SpecialClasses.DataBarPropertyLabel;
                         propertyLabel.innerText = property;
                         entry.appendChild(propertyLabel);
 
                         valueLabel = document.createElement('span');
-                        valueLabel.className = 'value-label';
+                        valueLabel.className = SpecialClasses.DataBarValueLabel;
                         valueLabel.innerText = value;
                     } else {
                         const propertyLabel = document.createElement('summary');
-                        propertyLabel.className = 'property-label';
+                        propertyLabel.className = SpecialClasses.DataBarPropertyLabel;
                         propertyLabel.innerText = property;
 
                         valueLabel = document.createElement('details');
@@ -58,7 +58,7 @@ export default class DataRenderer {
                 };
 
                 const label = document.createElement('summary');
-                label.className = 'property-label';
+                label.className = SpecialClasses.DataBarPropertyLabel;
                 label.innerText = instance.component.displayName;
 
                 instance.parameterValues.forEach(parameter => {

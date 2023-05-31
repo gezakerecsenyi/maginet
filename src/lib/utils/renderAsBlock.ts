@@ -1,13 +1,13 @@
 import ComponentInstanceFactory from '../../render/ComponentInstanceFactory';
 import Renderer from '../../render/Renderer';
-import { DefaultParameterId, ParameterValue } from '../../types';
+import { DefaultParameterId, ParameterValue, SpecialClasses } from '../../types';
 import Size from './Size';
 
 export default function renderAsBlock(width?: Size, height?: Size, htmlClassName?: string) {
     return (dataHere: ParameterValue[], renderer: Renderer): HTMLElement => {
         const element = document.createElement('div');
         element.style.position = 'relative';
-        element.className = `generated-rendered-block ${htmlClassName || ''}`;
+        element.className = `${SpecialClasses.GeneratedBlock} ${htmlClassName || ''}`;
         element.style.width = width?.toString() || '0px';
         element.style.height = height?.toString() || '0px';
 

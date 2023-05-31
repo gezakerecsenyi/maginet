@@ -1,9 +1,9 @@
 import getDefaultValueForType from '../lib/utils/getDefaultValueForType';
-import { DefaultParameterId, Parameter, ParameterType, ParameterValue } from '../types';
+import MaginetError from '../lib/utils/MaginetError';
+import SearchableMap from '../lib/utils/SearchableMap';
+import { DefaultParameterId, Parameter, ParameterType, ParameterValue, RenderMethod } from '../types';
 import ComponentInstanceFactory from './ComponentInstanceFactory';
 import Renderer from './Renderer';
-
-export type RenderMethod<T extends string> = (parameterValue: ParameterValue<T>[], renderer: Renderer) => HTMLElement;
 
 export interface ParametersFrom<T extends string> extends Omit<Parameter, 'id'> {
     id: T | DefaultParameterId,
@@ -48,6 +48,16 @@ export default class Component<T extends string = string> {
                 id: DefaultParameterId.LayerDepth,
                 type: ParameterType.Number,
             },
+            {
+                displayKey: 'Width',
+                id: DefaultParameterId.Width,
+                type: ParameterType.Size,
+            },
+            {
+                displayKey: 'Height',
+                id: DefaultParameterId.Height,
+                type: ParameterType.Size,
+            },
             ...(
                 allowChildren ?
                     [
@@ -78,11 +88,44 @@ export default class Component<T extends string = string> {
     }
 
     render(
-        parameterValue: ParameterValue<T>[],
+        parameterValues: SearchableMap<T | DefaultParameterId, ParameterValue<T>>,
         srcInstance: ComponentInstanceFactory<Component<T | DefaultParameterId>> | null,
         renderer: Renderer,
     ) {
-        const renderRes = this.renderMethod(parameterValue, renderer);
+        let renderRes!: HTMLElement;
+        const populatedParams = parameterValues.concatIfNew(...this.defaultParameterValues);
+        try {
+            renderRes = this.renderMethod(populatedParams, renderer);
+
+            if (!renderRes) throw 0;
+        } catch (e: any) {
+            // prevent nested catches (thus blaming the top-most element)
+            if (e.name === MaginetError.Name) {
+                throw e;
+            }
+
+            throw new MaginetError(
+                `Failed to render component of type ${this.displayName} (${this.id}/` +
+                `${srcInstance?.id || '[unknown]'}). Check that all data is properly being passed in, and that the ` +
+                `render method is complete.\n\nExpected parameters:\n` + this
+                    .parameters
+                    .map(e => `\t${e.displayKey} (${e.id})`)
+                    .join('\n')
+                + `\n\nGot:\n` + populatedParams
+                    .map(e => `\t${e.id} == ${e.value}`)
+                    .join('\n')
+                + `\n\nFrom:\n` + (
+                    srcInstance
+                        ?.parameterMapping
+                        .map(e => `\t${e.id} == ${e.value ?? `[reference to ${e.tiedTo?.locationId}::${e.tiedTo?.id}]`}`)
+                        .join('\n') || '\t[unknown]'
+                ) + `\n\n(+assuming defaults of:\n` + this
+                    .defaultParameterValues
+                    .map(e => `\t${e.id} == ${e.value}`)
+                    .join('\n')
+                + `)\n`,
+            );
+        }
 
         if (renderer.interactable && srcInstance) {
             renderRes.setAttribute('id', srcInstance.getInstanceId());

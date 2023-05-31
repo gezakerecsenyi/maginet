@@ -1,11 +1,11 @@
+import { v4 } from 'uuid';
 import areBBsIntersecting, { BasicDOMRect } from '../lib/utils/areBBsIntersecting';
 import Size from '../lib/utils/Size';
-import updateFromLocation from '../lib/utils/updateFromLocation';
 import Maginet from '../Maginet';
 import ComponentInstanceFactory from '../render/ComponentInstanceFactory';
 import Renderer from '../render/Renderer';
-import { DefaultParameterId, SizeUnit } from '../types';
-import ToolbarRenderer, { OptionType } from './ToolbarRenderer';
+import { DefaultParameterId, SizeUnit, SpecialClasses, ToolType } from '../types';
+import ToolbarRenderer from './ToolbarRenderer';
 
 export enum EditMode {
     Reference = 'reference',
@@ -30,6 +30,7 @@ export default class SpreadRenderer {
     private selectionStart: MouseData | null = null;
     private dragSelectionBox: HTMLDivElement | null = null;
     private topLevelInstances: [string, ComponentInstanceFactory][] = [];
+    private newElement: ComponentInstanceFactory<any> | null = null;
 
     constructor(parent: HTMLElement, maginet: Maginet) {
         this.parent = parent;
@@ -44,6 +45,9 @@ export default class SpreadRenderer {
         this.parent.addEventListener('mousemove', this.handleMouseMove.bind(this), true);
         this.parent.addEventListener('mouseleave', this.handleMouseLeave.bind(this));
         this.parent.addEventListener('wheel', this.handleScrollWheel.bind(this));
+
+        this.selectedTool = ToolType.Cursor;
+        this.toolbarRenderer.selectedToolCategory = ToolType.Cursor;
     }
 
     private _isDraggingWorkspace: boolean = false;
@@ -58,18 +62,23 @@ export default class SpreadRenderer {
         if (value) {
             this.dragSelectionBox?.classList.remove('hidden');
         } else {
+            this.newElement = null;
             this.dragSelectionBox?.classList.add('hidden');
             this.dragSelectionBox?.setAttribute('style', '');
         }
     }
 
-    private _selectedTool!: OptionType;
+    private _selectedTool!: ToolType;
 
-    get selectedTool(): OptionType {
+    get selectedTool(): ToolType {
         return this._selectedTool;
     }
 
-    set selectedTool(value: OptionType) {
+    set selectedTool(value: ToolType) {
+        if (value !== ToolType.Cursor) {
+            this.selectedInstances = null;
+        }
+
         this._selectedTool = value;
     }
 
@@ -162,6 +171,14 @@ export default class SpreadRenderer {
         this.updateView();
     }
 
+    get currentSpread() {
+        return this
+            .maginet
+            .magazine
+            .spreads
+            .find(e => e.id === this.maginet.currentSpreadId)!;
+    }
+
     handleKeyDown(event: KeyboardEvent) {
         if (event.key === 'z' && event.ctrlKey) {
             event.preventDefault();
@@ -237,26 +254,86 @@ export default class SpreadRenderer {
     }
 
     handleMouseDown(event: MouseEvent) {
+        const target = event.target as HTMLElement | null;
+        if (target?.classList.contains(SpecialClasses.NoSelect)) {
+            return;
+        }
+
         if (event.button === 1) {
             event.preventDefault();
             this.isPanning = true;
         }
 
         if (event.button === 0) {
-            const target = event.target as HTMLElement | null;
-            if (target && target.classList.contains('selection-box-component')) {
+            if (target && target.classList.contains(SpecialClasses.SelectionBoxComponent) && this.selectedTool === ToolType.Cursor) {
                 this.isDraggingSelectedItem = true;
-            } else if (
-                this.container && (
-                    target?.classList.contains(`-top-level-spread`) ||
-                    target?.getAttribute('id') === 'preview')
-            ) {
-                this.selectedInstances = null;
-                this.isDraggingWorkspace = true;
-                this.selectionStart = this.toScaledDistance({
-                    x: event.clientX,
-                    y: event.clientY,
-                });
+            } else {
+                const dragInsertData = this.selectedTool !== ToolType.Cursor && this
+                    .toolbarRenderer
+                    .currentToolData
+                    .insertableByDrag;
+                if (
+                    this.container && (
+                        (
+                            this.selectedTool === ToolType.Cursor && (
+                                target?.classList.contains(SpecialClasses.TopLevelSpread) ||
+                                target?.getAttribute('id') === 'preview'
+                            )
+                        ) || dragInsertData
+                    )
+                ) {
+                    this.selectionStart = this.toScaledDistance({
+                        x: event.clientX,
+                        y: event.clientY,
+                    });
+
+                    if (dragInsertData) {
+                        this.newElement = this
+                            .currentSpread
+                            .addChild(
+                                new ComponentInstanceFactory(
+                                    dragInsertData.component,
+                                    [
+                                        {
+                                            id: DefaultParameterId.X,
+                                            isReference: false,
+                                            value: this.selectionStart.x,
+                                        },
+                                        {
+                                            id: DefaultParameterId.Y,
+                                            isReference: false,
+                                            value: this.selectionStart.y,
+                                        },
+                                        ...(
+                                            (dragInsertData.bindHeightTo || [])
+                                                .map(e => ({
+                                                    id: e,
+                                                    isReference: false,
+                                                    value: new Size(0, SizeUnit.PX),
+                                                }))
+                                        ),
+                                        ...(
+                                            (dragInsertData.bindWidthTo || [])
+                                                .map(e => ({
+                                                    id: e,
+                                                    isReference: false,
+                                                    value: new Size(0, SizeUnit.PX),
+                                                }))
+                                        ),
+                                    ],
+                                    v4(),
+                                ),
+                            );
+
+                        this.maginet.rerender();
+                    }
+
+                    if (!this.ctrlPressed) {
+                        this.selectedInstances = null;
+                    }
+
+                    this.isDraggingWorkspace = true;
+                }
             }
         }
     }
@@ -269,6 +346,7 @@ export default class SpreadRenderer {
 
         this.isDraggingWorkspace = false;
         this.isDraggingSelectedItem = false;
+        this.newElement = null;
     }
 
     handleMouseLeave(event: MouseEvent) {
@@ -277,7 +355,7 @@ export default class SpreadRenderer {
     }
 
     updateSelectionMarker(data: MouseData) {
-        if (this.isDraggingWorkspace && this.dragSelectionBox && this.selectionStart) {
+        if (this.dragSelectionBox && this.selectionStart) {
             const mappedCoords = this.toScaledDistance(data);
 
             const selectionBoundingBox: BasicDOMRect = {
@@ -291,25 +369,51 @@ export default class SpreadRenderer {
             selectionBoundingBox.right = selectionBoundingBox.left + selectionBoundingBox.width;
             selectionBoundingBox.bottom = selectionBoundingBox.top + selectionBoundingBox.height;
 
-            this.dragSelectionBox.style.left = `${selectionBoundingBox.left}px`;
-            this.dragSelectionBox.style.top = `${selectionBoundingBox.top}px`;
-            this.dragSelectionBox.style.width = `${selectionBoundingBox.width}px`;
-            this.dragSelectionBox.style.height = `${selectionBoundingBox.height}px`;
+            if (this.newElement) {
+                for (const param of (this.toolbarRenderer.currentToolData.insertableByDrag!.bindWidthTo ?? [])) {
+                    this.newElement.respectfullyUpdateParameter(
+                        this.maginet,
+                        param,
+                        (currentValue) => new Size(
+                            selectionBoundingBox.width,
+                            SizeUnit.PX,
+                        ).toType((currentValue as Size).unit),
+                    );
+                }
 
-            for (const instance of this.topLevelInstances) {
-                const clientRect = document.getElementById(instance[0])?.getBoundingClientRect();
+                for (const param of (this.toolbarRenderer.currentToolData.insertableByDrag!.bindHeightTo ?? [])) {
+                    this.newElement.respectfullyUpdateParameter(
+                        this.maginet,
+                        param,
+                        (currentValue) => new Size(
+                            selectionBoundingBox.height,
+                            SizeUnit.PX,
+                        ).toType((currentValue as Size).unit),
+                    );
+                }
 
-                if (clientRect) {
-                    if (areBBsIntersecting(this.normalizeDOMRect(clientRect), selectionBoundingBox)) {
-                        this.selectedInstances = (this.selectedInstances || []).concat(instance[1]);
-                    } else if (!this.ctrlPressed && this.selectedInstances) {
-                        this.selectedInstances = this
-                            .selectedInstances
-                            .filter(e => e.id !== instance[1].id);
+                this.maginet.rerender();
+            } else if (this.isDraggingWorkspace) {
+                this.dragSelectionBox.style.left = `${selectionBoundingBox.left}px`;
+                this.dragSelectionBox.style.top = `${selectionBoundingBox.top}px`;
+                this.dragSelectionBox.style.width = `${selectionBoundingBox.width}px`;
+                this.dragSelectionBox.style.height = `${selectionBoundingBox.height}px`;
+
+                for (const instance of this.topLevelInstances) {
+                    const clientRect = document.getElementById(instance[0])?.getBoundingClientRect();
+
+                    if (clientRect) {
+                        if (areBBsIntersecting(this.normalizeDOMRect(clientRect), selectionBoundingBox)) {
+                            this.selectedInstances = (this.selectedInstances || []).concat(instance[1]);
+                        } else if (!this.ctrlPressed && this.selectedInstances) {
+                            this.selectedInstances = this
+                                .selectedInstances
+                                .filter(e => e.id !== instance[1].id);
+                        }
+                    } else {
+                        this.renderCurrentSpread();
+                        break;
                     }
-                } else {
-                    this.renderCurrentSpread();
-                    break;
                 }
             }
         }
@@ -340,61 +444,33 @@ export default class SpreadRenderer {
             const alreadyUpdated: string[][] = [];
             for (const instance of this.selectedInstances) {
                 for (const parameterDescriptor of parameterDescriptors) {
-                    const parameterHere = instance
-                        .parameterMapping
-                        .find(e => e.id === parameterDescriptor.id);
                     const addend = new Size(parameterDescriptor.offset, SizeUnit.PX);
 
-                    if (!parameterHere?.isReference) {
-                        instance
-                            .parameterMapping
-                            .updateById(
-                                parameterDescriptor.id,
-                                {
-                                    value: (parameterHere!.value as Size).add(addend),
-                                },
-                            );
-                    } else if (parameterHere) {
-                        let [resolvedValue, resolvedValueLocation] = ComponentInstanceFactory.resolveParameterValue(
-                            parameterHere.tiedTo!,
-                            this.maginet.magazine.spreads,
-                            this.maginet.magazine.components,
-                            true,
-                            null,
-                        );
+                    instance.respectfullyUpdateParameter(
+                        this.maginet,
+                        parameterDescriptor.id,
+                        (currentValue, foundAt) => {
+                            const newValue = (currentValue as Size).add(addend);
+                            if (foundAt) {
+                                if (
+                                    !alreadyUpdated.some(
+                                        a => a.every((e, i) => e === foundAt[i]),
+                                    )
+                                ) {
+                                    alreadyUpdated.push(foundAt);
+                                    return newValue;
+                                }
 
-                        if (this.editMode === EditMode.Value) {
-                            if (resolvedValue !== null) {
-                                instance
-                                    .parameterMapping
-                                    .updateById(
-                                        parameterDescriptor.id,
-                                        {
-                                            value: (resolvedValue as Size).add(addend),
-                                            isReference: false,
-                                        },
-                                    );
+                                return currentValue as Size;
                             }
-                        } else if (this.editMode === EditMode.Reference) {
-                            if (
-                                resolvedValueLocation.length &&
-                                !alreadyUpdated.some(e => e
-                                    .every((q, i) => q === resolvedValueLocation[i]),
-                                )
-                            ) {
-                                updateFromLocation(
-                                    this.maginet.magazine,
-                                    (resolvedValue as Size).add(addend),
-                                    resolvedValueLocation,
-                                );
-                                alreadyUpdated.push(resolvedValueLocation);
-                            }
-                        }
-                    }
+
+                            return newValue;
+                        },
+                    );
                 }
             }
 
-            this.maginet.update(this.selectedInstances);
+            this.maginet.rerender(this.selectedInstances);
         }
     }
 
@@ -471,13 +547,8 @@ export default class SpreadRenderer {
             this.parent.replaceChildren(this.container);
         }
 
-        const currentSpread = this
-            .maginet
-            .magazine
-            .spreads
-            .find(e => e.id === this.maginet.currentSpreadId)!;
-        const renderedSpread = currentSpread.render(new Renderer(this.maginet));
-        renderedSpread.classList.add('-top-level-spread');
+        const renderedSpread = this.currentSpread.render(new Renderer(this.maginet));
+        renderedSpread.classList.add(SpecialClasses.TopLevelSpread);
 
         this.topLevelInstances = [];
         [
@@ -486,7 +557,7 @@ export default class SpreadRenderer {
         ].forEach(source => {
             this.topLevelInstances.push(
                 ...((
-                    currentSpread
+                    this.currentSpread
                         .parameterValues
                         .find(e => e.id === source)
                         ?.value as ComponentInstanceFactory[] | undefined
@@ -515,7 +586,7 @@ export default class SpreadRenderer {
                 'b',
             ].forEach(side => {
                 const sideComponent = document.createElement('div');
-                sideComponent.className = `selection-box-component selection-side-${side}`;
+                sideComponent.className = `${SpecialClasses.SelectionBoxComponent} selection-side-${side}`;
                 selectionBox.appendChild(sideComponent);
             });
 
@@ -536,12 +607,14 @@ export default class SpreadRenderer {
     }
 
     selectOrReplace(instances: ComponentInstanceFactory[]) {
-        if (this.selectedInstances && this.ctrlPressed) {
-            this.selectedInstances = this.selectedInstances.concat(...instances);
-            return true;
-        } else {
-            this.selectedInstances = instances;
-            return false;
+        if (this.selectedTool === ToolType.Cursor) {
+            if (this.selectedInstances && this.ctrlPressed) {
+                this.selectedInstances = this.selectedInstances.concat(...instances);
+                return true;
+            } else {
+                this.selectedInstances = instances;
+                return false;
+            }
         }
     }
 

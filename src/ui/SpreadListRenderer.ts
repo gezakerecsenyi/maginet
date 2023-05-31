@@ -3,7 +3,7 @@ import Renderer from '../render/Renderer';
 
 export default class SpreadListRenderer {
     private container: HTMLElement;
-    private maginet: Maginet;
+    private readonly maginet: Maginet;
 
     constructor(container: HTMLElement, magazine: Maginet) {
         this.container = container;

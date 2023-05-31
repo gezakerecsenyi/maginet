@@ -1,5 +1,8 @@
 import SearchableMap from '../lib/utils/SearchableMap';
+import updateFromLocation from '../lib/utils/updateFromLocation';
+import Maginet from '../Maginet';
 import { DefaultParameterId, Magazine, ParameterValueType } from '../types';
+import { EditMode } from '../ui/SpreadRenderer';
 import Component from './Component';
 import ComponentInstance from './ComponentInstance';
 
@@ -15,14 +18,14 @@ export interface ParameterCalculator<T extends string> {
     isReference: boolean;
 }
 
-export type ComponentOf<R> = R extends Component<infer U> ? (U | DefaultParameterId) : never;
+export type ParameterOf<R> = R extends Component<infer U> ? (U | DefaultParameterId) : never;
 
-export default class ComponentInstanceFactory<R extends Component<ComponentOf<R>> = Component> {
+export default class ComponentInstanceFactory<R extends Component<ParameterOf<R>> = Component> {
     public component;
-    public parameterMapping: SearchableMap<ComponentOf<R>, ParameterCalculator<ComponentOf<R>>>;
+    public parameterMapping: SearchableMap<ParameterOf<R>, ParameterCalculator<ParameterOf<R>>>;
     public id: string;
 
-    constructor(component: R, parameterMapping: ParameterCalculator<ComponentOf<R>>[], id: string) {
+    constructor(component: R, parameterMapping: ParameterCalculator<ParameterOf<R>>[], id: string) {
         this.component = component;
         this.parameterMapping = new SearchableMap(...parameterMapping);
         this.id = id;
@@ -193,15 +196,66 @@ export default class ComponentInstanceFactory<R extends Component<ComponentOf<R>
         return ComponentInstanceFactory.getInstanceId(this);
     }
 
+    respectfullyUpdateParameter(
+        maginet: Maginet,
+        parameter: ParameterOf<R>,
+        update: (currentValue: ParameterValueType, foundAt?: string[]) => ParameterValueType,
+    ) {
+        const parameterHere = this
+            .parameterMapping
+            .find(e => e.id === parameter);
+
+        if (!parameterHere?.isReference) {
+            this
+                .parameterMapping
+                .updateById(
+                    parameter,
+                    {
+                        value: update(parameterHere!.value!),
+                    },
+                );
+        } else if (parameterHere) {
+            let [resolvedValue, resolvedValueLocation] = ComponentInstanceFactory.resolveParameterValue(
+                parameterHere.tiedTo!,
+                maginet.magazine.spreads,
+                maginet.magazine.customComponents,
+                true,
+                null,
+            );
+
+            if (maginet.spreadRenderer.editMode === EditMode.Value) {
+                if (resolvedValue !== null) {
+                    this
+                        .parameterMapping
+                        .updateById(
+                            parameter,
+                            {
+                                value: update(resolvedValue!),
+                                isReference: false,
+                            },
+                        );
+                }
+            } else if (maginet.spreadRenderer.editMode === EditMode.Reference) {
+                if (resolvedValueLocation.length) {
+                    updateFromLocation(
+                        maginet.magazine,
+                        update(resolvedValue!, resolvedValueLocation),
+                        resolvedValueLocation,
+                    );
+                }
+            }
+        }
+    }
+
     composeComponentInstance(magazine: Magazine) {
-        return new ComponentInstance<ComponentOf<R>>(
+        return new ComponentInstance<ParameterOf<R>>(
             this.component,
             this.parameterMapping.map(p => ({
                 ...this.component.parameters.find(e => e.id == p.id)!,
                 value: p.value ?? (ComponentInstanceFactory.resolveParameterValue(
                     p.tiedTo!,
                     magazine.spreads,
-                    magazine.components,
+                    magazine.customComponents,
                     true,
                     null,
                 )[0] || 0),

@@ -4,7 +4,7 @@ import { TextSpan } from './lib/TextSpan';
 import Size from './lib/utils/Size';
 import ComponentInstance from './render/ComponentInstance';
 import ComponentInstanceFactory from './render/ComponentInstanceFactory';
-import { DefaultParameterId, HistoryState, Magazine, SizeUnit } from './types';
+import { DefaultParameterId, HistoryState, Magazine, SizeUnit, SpecialClasses, ToolType } from './types';
 import DataRenderer from './ui/DataRenderer';
 import SpreadListRenderer from './ui/SpreadListRenderer';
 import SpreadRenderer from './ui/SpreadRenderer';
@@ -120,7 +120,7 @@ export default class Maginet {
                     '0',
                 ),
             ],
-            components: [],
+            customComponents: [],
         };
 
         this.pxInMM = mmRuler.getBoundingClientRect().height / 100;
@@ -145,8 +145,7 @@ export default class Maginet {
             this._historyPointer = value;
 
             this.magazine = this.history[value];
-            console.log('reset magazine to', this.magazine);
-            this.update();
+            this.rerender();
         }
     }
 
@@ -158,7 +157,7 @@ export default class Maginet {
 
     set currentSpreadId(id: string) {
         this._currentSpreadId = id;
-        this.update();
+        this.rerender();
 
         this.spreadRenderer.zoomToFit();
         this.dataRenderer.renderList();
@@ -182,14 +181,16 @@ export default class Maginet {
         }
     }
 
-    update(only?: ComponentInstanceFactory[]) {
+    rerender(only?: ComponentInstanceFactory[]) {
         this.spreadRenderer.renderCurrentSpread(only);
         this.spreadListRenderer.updatePreviews();
         this.dataRenderer.renderList();
     }
 
     select(instance: ComponentInstanceFactory[]) {
-        this.spreadRenderer.selectOrReplace(instance);
+        if (this.spreadRenderer.selectedTool === ToolType.Cursor) {
+            this.spreadRenderer.selectOrReplace(instance);
+        }
     }
 
     deselectAll() {
@@ -197,12 +198,14 @@ export default class Maginet {
     }
 
     makeSelectable(element: HTMLElement, instance: ComponentInstanceFactory | null) {
-        if (instance?.component.isSelectable) {
-            element.onclick = () => {
-                this.select([instance]);
-            };
-        } else {
-            element.style.pointerEvents = 'none';
+        if (!element.classList.contains(SpecialClasses.NoSelect)) {
+            if (instance?.component.isSelectable) {
+                element.onclick = () => {
+                    this.select([instance]);
+                };
+            } else {
+                element.style.pointerEvents = 'none';
+            }
         }
 
         return element;

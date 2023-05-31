@@ -1,5 +1,6 @@
 import Component from '../render/Component';
 import { DefaultParameterId, ParameterType } from '../types';
+import Size from './utils/Size';
 
 export const TextSpan = new Component<'text' | DefaultParameterId>(
     [
@@ -13,7 +14,10 @@ export const TextSpan = new Component<'text' | DefaultParameterId>(
     [],
     (data) => {
         const span = document.createElement('span');
-        span.innerText = data.find(q => q.id === 'text')!.value as string;
+        span.innerText = data.getById('text')!.value as string;
+        span.style.backgroundColor = '#aaaaff';
+        span.style.display = 'inline-block';
+        span.style.width = (data.getById(DefaultParameterId.Width)!.value as Size).toString();
         return span;
     },
     'TextSpan',

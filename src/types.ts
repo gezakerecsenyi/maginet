@@ -1,19 +1,33 @@
+import SearchableMap from './lib/utils/SearchableMap';
 import Size from './lib/utils/Size';
 import Component from './render/Component';
 import ComponentInstance from './render/ComponentInstance';
 import ComponentInstanceFactory from './render/ComponentInstanceFactory';
+import Renderer from './render/Renderer';
 
 export interface Magazine {
     spreads: ComponentInstance<any>[];
-    components: Component[];
+    customComponents: Component[];
 }
 
 export enum DefaultParameterId {
-    X = 'x', Y = 'y', LayerDepth = 'layerDepth', Children = 'children', Contents = 'contents',
+    X = 'x',
+    Y = 'y',
+    LayerDepth = 'layerDepth',
+    Children = 'children',
+    Contents = 'contents',
+    Width = 'width',
+    Height = 'height',
 }
 
 export enum ParameterType {
-    Number, String, Color, Font, Size, Angle, Children,
+    Number,
+    String,
+    Color,
+    Font,
+    Size,
+    Angle,
+    Children,
 }
 
 export interface Parameter {
@@ -31,11 +45,13 @@ export interface ColorPrimitive {
 }
 
 export enum ColorType {
-    Gradient, Solid,
+    Gradient,
+    Solid,
 }
 
 export enum GradientType {
-    Radial, Linear,
+    Radial,
+    Linear,
 }
 
 export interface GradientPoint {
@@ -53,11 +69,14 @@ export interface Color {
 export type Font = string;
 
 export enum SizeUnit {
-    PX = 'px', PT = 'pt', MM = 'mm',
+    PX = 'px',
+    PT = 'pt',
+    MM = 'mm',
 }
 
 export enum AngleUnit {
-    Degrees, Radians,
+    Degrees,
+    Radians,
 }
 
 export interface Angle {
@@ -75,3 +94,33 @@ export interface ParameterValue<T extends string = string> {
 export interface HistoryState extends Magazine {
 
 }
+
+export enum SpecialClasses {
+    NoSelect = '-no-select',
+    DataBarPropertyLabel = 'property-label',
+    DataBarValueLabel = 'value-label',
+    GeneratedBlock = 'generated-rendered-block',
+    SelectionBoxComponent = 'selection-box-component',
+    TopLevelSpread = '-top-level-spread',
+}
+
+export enum ToolType {
+    Cursor = 'tool-cursor',
+    Text = 'tool-text',
+    Image = 'tool-image',
+    Shape = 'tool-shape',
+    Nodes = 'tool-nodes',
+    Component = 'tool-component',
+
+    Circle = 'tool-circle',
+    Rectangle = 'tool-rectangle',
+    Triangle = 'tool-triangle',
+
+    TextFragment = 'tool-text-fragment',
+    RichText = 'tool-rich-text',
+}
+
+export type RenderMethod<T extends string> = (
+    parameterValue: SearchableMap<T | DefaultParameterId, ParameterValue<T>>,
+    renderer: Renderer,
+) => HTMLElement;
