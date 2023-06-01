@@ -417,6 +417,7 @@ export default class SpreadRenderer {
                 }
 
                 this.maginet.rerender();
+                this.maginet.dataRenderer.ensureFocus(this.newElement);
             } else if (this.isDraggingWorkspace) {
                 this.dragSelectionBox.style.left = `${selectionBoundingBox.left}px`;
                 this.dragSelectionBox.style.top = `${selectionBoundingBox.top}px`;

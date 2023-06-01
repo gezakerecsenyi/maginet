@@ -14,11 +14,11 @@ export const Spread = new Component<SpecialParameterId>(
     [
         {
             id: SpecialParameterId.X,
-            value: 0,
+            value: new Size(0, SizeUnit.PX),
         },
         {
             id: SpecialParameterId.Y,
-            value: 0,
+            value: new Size(0, SizeUnit.PX),
         },
     ],
 );

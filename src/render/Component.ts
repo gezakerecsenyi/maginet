@@ -1,6 +1,7 @@
 import getDefaultValueForType from '../lib/utils/getDefaultValueForType';
 import MaginetError from '../lib/utils/MaginetError';
 import SearchableMap from '../lib/utils/SearchableMap';
+import validateType from '../lib/utils/validateType';
 import {
     ImmutableSpecialParameters,
     ParametersFrom,
@@ -11,6 +12,7 @@ import {
     SpecialParameterId,
     UIBindingSpec,
 } from '../types';
+import { PopulatedWindow } from '../window';
 import ComponentInstanceFactory from './ComponentInstanceFactory';
 import { ParameterCalculator } from './ParameterCalculator';
 import Renderer from './Renderer';
@@ -90,6 +92,7 @@ export default class Component<T extends string = string> {
                     []
             ),
         ]);
+
         this.defaultParameterValues = this
             .parameters
             .map(e => {
@@ -103,6 +106,23 @@ export default class Component<T extends string = string> {
                     value: getDefaultValueForType(e.type),
                 };
             });
+
+        if ((window as PopulatedWindow).debug) {
+            this
+                .parameters
+                .asSecondaryKey(this.defaultParameterValues)
+                .forEach(param => {
+                    if (!validateType(param.type, param.value)) {
+                        throw new MaginetError(
+                            `Detected discrepancy in passed data for parameter ${param.displayKey} (in ` +
+                            `default value specification for ${this.displayName}):\n` +
+                            `\tExpected type: ${param.type}\n\tGot value: ` +
+                            `${MaginetError.processValue(param.value)}\n`,
+                        );
+                    }
+                });
+        }
+
         this.renderMethod = renderMethod;
         this.id = id;
     }

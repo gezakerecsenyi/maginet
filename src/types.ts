@@ -99,8 +99,8 @@ export interface HistoryState extends Magazine {
 
 export enum SpecialClasses {
     NoSelect = '-no-select',
-    DataBarPropertyLabel = 'property-label',
-    DataBarValueLabel = 'value-label',
+    DatumPropertyLabel = 'property-label',
+    DatumValueLabel = 'value-label',
     GeneratedBlock = 'generated-rendered-block',
     SelectionBoxComponent = 'selection-box-component',
     TopLevelSpread = '-top-level-spread',

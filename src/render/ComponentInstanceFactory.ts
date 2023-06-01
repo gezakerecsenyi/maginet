@@ -1,12 +1,11 @@
 import MaginetError from '../lib/utils/MaginetError';
 import SearchableMap from '../lib/utils/SearchableMap';
 import updateFromLocation from '../lib/utils/updateFromLocation';
+import validateType from '../lib/utils/validateType';
 import Maginet from '../Maginet';
 import {
-    Angle,
     ImmutableSpecialParameters,
     Magazine,
-    ParameterType,
     ParameterValue,
     ParameterValueType,
     SpecialParameterId,
@@ -107,7 +106,7 @@ export default class ComponentInstanceFactory<R extends Component<ParameterOf<R>
     }
 
     composeComponentInstance(magazine: Magazine) {
-        return new ComponentInstance<ParameterOf<R>>(this.id, this.parameterMapping.map(p => {
+        return new ComponentInstance<ParameterOf<R>>(this.id, this.component, this.parameterMapping.map(p => {
             const valueHere = p.value ?? (p.resolveValue(
                 magazine,
                 true,
@@ -116,36 +115,7 @@ export default class ComponentInstanceFactory<R extends Component<ParameterOf<R>
 
             const parameterDetails = this.component.parameters.getById(p.id)!;
             if ((window as PopulatedWindow).debug) {
-                let isGood = true;
-
-                switch (parameterDetails?.type) {
-                    case ParameterType.Number:
-                        isGood = typeof valueHere === 'number';
-                        break;
-                    case ParameterType.Color:
-                        isGood = typeof valueHere === 'object' && Object.hasOwn(valueHere, 'type');
-                        break;
-                    case ParameterType.Font:
-                    case ParameterType.String:
-                        isGood = typeof valueHere === 'string';
-                        break;
-                    case ParameterType.Size:
-                        isGood = typeof valueHere === 'object' && Object.hasOwn(valueHere, 'distance');
-                        break;
-                    case ParameterType.Angle:
-                        isGood = typeof valueHere === 'object' &&
-                            Object.hasOwn(valueHere, 'unit') &&
-                            [
-                                'deg',
-                                'rad',
-                            ].includes((valueHere as Angle).unit);
-                        break;
-                    case ParameterType.Children:
-                        isGood = typeof valueHere === 'object' && Object.hasOwn(valueHere, 'length');
-                        break;
-                }
-
-                if (!isGood) {
+                if (!validateType(parameterDetails.type, valueHere)) {
                     throw new MaginetError(
                         `Detected discrepancy in passed data for parameter ${parameterDetails.displayKey} (in ` +
                         `instance ${this.id} of ${this.component.displayName}/${this.component.id}):\n` +
@@ -159,7 +129,7 @@ export default class ComponentInstanceFactory<R extends Component<ParameterOf<R>
                 ...parameterDetails,
                 value: valueHere,
             };
-        }), this.component, this);
+        }), this);
     }
 
     locateSelfInComponent<T extends string>(

@@ -10,8 +10,8 @@ export default class ComponentInstance<T extends string = string> {
 
     constructor(
         id: string,
-        parameterValues: ParameterValue<T>[],
         component: Component<T>,
+        parameterValues: ParameterValue<T>[],
         fromFactory: ComponentInstanceFactory<Component<SpecialParameterId | T>> | null = null,
     ) {
         this.fromFactory = fromFactory;

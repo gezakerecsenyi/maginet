@@ -34,6 +34,7 @@ export default class Maginet {
             spreads: [
                 new ComponentInstance(
                     '0',
+                    Spread,
                     [
                         {
                             id: SpecialParameterId.LayerDepth,
@@ -135,7 +136,6 @@ export default class Maginet {
                             ],
                         },
                     ],
-                    Spread,
                 ),
             ],
             customComponents: [],
@@ -217,13 +217,13 @@ export default class Maginet {
     select(instance: ComponentInstanceFactory[]) {
         if (this.spreadRenderer.selectedTool === ToolType.Cursor) {
             this.spreadRenderer.selectOrReplace(instance);
-            this.dataRenderer.focusOn(instance.slice(-1)[0]);
+            this.dataRenderer.ensureFocus(instance.slice(-1)[0]);
         }
     }
 
     deselectAll() {
         this.spreadRenderer.locallyDeselectAll();
-        this.dataRenderer.focusOn(null);
+        this.dataRenderer.ensureFocus(null);
     }
 
     makeSelectable(element: HTMLElement, instance: ComponentInstanceFactory | null) {

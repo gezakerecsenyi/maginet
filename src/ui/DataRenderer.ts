@@ -1,7 +1,8 @@
+import Size from '../lib/utils/Size';
 import Maginet from '../Maginet';
 import ComponentInstance from '../render/ComponentInstance';
 import ComponentInstanceFactory from '../render/ComponentInstanceFactory';
-import { ParameterType, SpecialClasses } from '../types';
+import { ParameterType, ParameterValueType, SpecialClasses } from '../types';
 
 export default class DataRenderer {
     private parent: HTMLElement;
@@ -21,7 +22,8 @@ export default class DataRenderer {
             .find(e => e.id === this.maginet.currentSpreadId)!;
     }
 
-    focusOn(node: ComponentInstanceFactory | null) {
+    ensureFocus(newNode?: ComponentInstanceFactory | null) {
+        const node = (newNode === undefined ? this.focussingOn : newNode);
         this.focussingOn = node;
 
         for (let detailTag of this.parent.getElementsByTagName('details')) {
@@ -67,22 +69,30 @@ export default class DataRenderer {
 
                 const listHere = document.createElement('ul');
 
-                const addPropertyEntry = (property: string, value: string | HTMLElement[], id: string) => {
+                const addPropertyEntry = (
+                    property: string,
+                    value: string | HTMLElement | HTMLElement[],
+                    id: string,
+                ) => {
                     const entry = document.createElement('li');
 
                     let valueLabel: HTMLElement;
-                    if (typeof value === 'string') {
+                    if (!Object.hasOwn(value as object, 'length')) {
                         const propertyLabel = document.createElement('span');
-                        propertyLabel.className = SpecialClasses.DataBarPropertyLabel;
+                        propertyLabel.className = SpecialClasses.DatumPropertyLabel;
                         propertyLabel.innerText = property;
                         entry.appendChild(propertyLabel);
 
                         valueLabel = document.createElement('span');
-                        valueLabel.className = SpecialClasses.DataBarValueLabel;
-                        valueLabel.innerText = value;
+                        valueLabel.className = SpecialClasses.DatumValueLabel;
+                        if (typeof value === 'string') {
+                            valueLabel.innerText = value;
+                        } else {
+                            valueLabel.replaceChildren(value as HTMLElement);
+                        }
                     } else {
                         const propertyLabel = document.createElement('summary');
-                        propertyLabel.className = SpecialClasses.DataBarPropertyLabel;
+                        propertyLabel.className = SpecialClasses.DatumPropertyLabel;
                         propertyLabel.innerText = property;
 
                         valueLabel = document.createElement('details');
@@ -90,7 +100,7 @@ export default class DataRenderer {
                         valueLabel.className = 'child-list';
 
                         const childList = document.createElement('ol');
-                        childList.replaceChildren(...value);
+                        childList.replaceChildren(...value as HTMLElement[]);
                         entry.appendChild(propertyLabel);
 
                         valueLabel.appendChild(propertyLabel);
@@ -106,7 +116,7 @@ export default class DataRenderer {
                 };
 
                 const label = document.createElement('summary');
-                label.className = SpecialClasses.DataBarPropertyLabel;
+                label.className = SpecialClasses.DatumPropertyLabel;
                 label.innerText = instance.component.displayName;
 
                 instance
@@ -114,9 +124,11 @@ export default class DataRenderer {
                     .asSecondaryKey(instance.component.parameters)
                     .forEach(parameter => {
                         if (parameter.type !== ParameterType.Children) {
-                            // TODO: current this is just rendering everything as strings. Add an option to allow for
-                            //  changing this, and also to render everything nicely according to data type.
-                            addPropertyEntry(parameter.displayKey, JSON.stringify(parameter.value), parameter.id);
+                            addPropertyEntry(
+                                parameter.displayKey,
+                                this.getEditorFor(parameter.value, parameter.type),
+                                parameter.id,
+                            );
                         } else {
                             addPropertyEntry(
                                 parameter.displayKey,
@@ -139,6 +151,22 @@ export default class DataRenderer {
 
         list.replaceChildren(...formatProperties([this.viewingComponent]));
         this.parent.replaceChildren(list);
-        this.focusOn(this.focussingOn);
+        this.ensureFocus(this.focussingOn);
+    }
+
+    public getEditorFor(
+        value: ParameterValueType,
+        type: ParameterType,
+    ): HTMLElement {
+        switch (type) {
+            case ParameterType.Size:
+                const node = document.createElement('span');
+                node.innerText = (value as Size).toCSSString();
+                return node;
+        }
+
+        const fallbackNode = document.createElement('span');
+        fallbackNode.innerText = JSON.stringify(value);
+        return fallbackNode;
     }
 }
