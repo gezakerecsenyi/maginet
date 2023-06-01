@@ -1,78 +1,58 @@
-import { SpecialParameterId, ToolType } from '../../types';
+import { ToolbarOptionData, ToolType } from '../../types';
 import { TextSpan } from '../TextSpan';
-import ToolbarOption from './ToolbarOption';
 
-export const toolbarOptionList: ToolbarOption<any>[] = [
-    new ToolbarOption({
+export const toolbarOptionList: ToolbarOptionData[] = [
+    {
         tooltip: 'Cursor',
         optionType: ToolType.Cursor,
-    }),
-    new ToolbarOption({
+    },
+    {
         tooltip: 'Text',
         optionType: ToolType.Text,
         suboptions: [
-            new ToolbarOption({
+            {
                 tooltip: 'Rich text',
                 optionType: ToolType.RichText,
-            }),
-            new ToolbarOption({
+            },
+            {
                 tooltip: 'Text frame',
                 optionType: ToolType.TextFragment,
-                insertableByDrag: {
-                    component: TextSpan,
-                    bindWidthTo: ['fontSize'],
-                },
-            }),
+                insertableByDrag: TextSpan,
+            },
         ],
-    }),
-    new ToolbarOption({
+    },
+    {
         tooltip: 'Image',
         optionType: ToolType.Image,
-        insertableByDrag: {
-            component: TextSpan,
-            bindWidthTo: [SpecialParameterId.Width],
-            bindHeightTo: [SpecialParameterId.Height],
-        },
-    }),
-    new ToolbarOption({
+        insertableByDrag: TextSpan,
+    },
+    {
         tooltip: 'Shape',
         optionType: ToolType.Shape,
         suboptions: [
-            new ToolbarOption({
+            {
                 tooltip: 'Circle',
                 optionType: ToolType.Circle,
-                insertableByDrag: {
-                    component: TextSpan,
-                    bindWidthTo: [SpecialParameterId.Width],
-                    bindHeightTo: [SpecialParameterId.Height],
-                },
-            }),
-            new ToolbarOption({
+                insertableByDrag: TextSpan,
+            },
+            {
                 tooltip: 'Rectangle',
                 optionType: ToolType.Rectangle,
-                insertableByDrag: {
-                    component: TextSpan,
-                    bindWidthTo: [SpecialParameterId.Width],
-                    bindHeightTo: [SpecialParameterId.Height],
-                },
-            }),
-            new ToolbarOption({
+                insertableByDrag: TextSpan,
+            },
+            {
                 tooltip: 'Triangle',
                 optionType: ToolType.Triangle,
-                insertableByDrag: {
-                    component: TextSpan,
-                    bindWidthTo: [SpecialParameterId.Width],
-                    bindHeightTo: [SpecialParameterId.Height],
-                },
-            }),
+                insertableByDrag: TextSpan,
+            },
         ],
-    }),
-    new ToolbarOption({
+    },
+    {
         tooltip: 'Node pen',
         optionType: ToolType.Nodes,
-    }),
-    new ToolbarOption({
+    },
+    {
         tooltip: 'Insert component...',
         optionType: ToolType.Component,
-    }),
+    },
 ];

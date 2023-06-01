@@ -9,6 +9,7 @@ import {
     ParameterValueType,
     RenderMethod,
     SpecialParameterId,
+    UIBindingSpec,
 } from '../types';
 import ComponentInstanceFactory from './ComponentInstanceFactory';
 import { ParameterCalculator } from './ParameterCalculator';
@@ -22,6 +23,7 @@ export default class Component<T extends string = string> {
     public isSelectable: boolean;
     public defaultParameterValues: ParameterValue<T>[];
     public contents: ComponentInstanceFactory[];
+    public bindUITo: UIBindingSpec<T>;
 
     constructor(
         parameters: ParametersFrom<Exclude<T, ImmutableSpecialParameters>>[],
@@ -32,10 +34,15 @@ export default class Component<T extends string = string> {
         displayName: string,
         isSelectable: boolean = true,
         defaultParameterValues: ParameterValue<T>[] = [],
+        bindUITo: UIBindingSpec<T> = {
+            width: [SpecialParameterId.Width],
+            height: [SpecialParameterId.Height],
+        },
     ) {
         this.isSelectable = isSelectable;
         this.displayName = displayName;
         this.contents = contents;
+        this.bindUITo = bindUITo;
         this.parameters = new SearchableMap<T | SpecialParameterId, ParametersFrom<T>>(...[
             ...parameters,
             {

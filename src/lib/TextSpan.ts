@@ -21,6 +21,7 @@ export const TextSpan = new Component<'text' | 'fontSize' | SpecialParameterId>(
         const span = document.createElement('span');
         span.innerText = data.getById('text')!.value as string;
         span.style.display = 'inline-block';
+        span.style.width = 'max-content';
         span.style.fontSize = (data.getById('fontSize')!.value as Size).toCSSString();
         return span;
     },
@@ -33,4 +34,8 @@ export const TextSpan = new Component<'text' | 'fontSize' | SpecialParameterId>(
             value: 'A',
         },
     ],
+    {
+        width: ['fontSize'],
+        height: [],
+    },
 );

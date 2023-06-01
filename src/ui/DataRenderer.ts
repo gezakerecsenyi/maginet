@@ -6,6 +6,7 @@ import { ParameterType, SpecialClasses } from '../types';
 export default class DataRenderer {
     private parent: HTMLElement;
     private maginet: Maginet;
+    private focussingOn: ComponentInstanceFactory | null = null;
 
     constructor(parent: HTMLElement, maginet: Maginet) {
         this.parent = parent;
@@ -21,6 +22,8 @@ export default class DataRenderer {
     }
 
     focusOn(node: ComponentInstanceFactory | null) {
+        this.focussingOn = node;
+
         for (let detailTag of this.parent.getElementsByTagName('details')) {
             detailTag.removeAttribute('open');
         }
@@ -40,9 +43,14 @@ export default class DataRenderer {
                 for (let i = 0; i < pathToNode.length; i++) {
                     const pathToHere = pathToNode.slice(0, i + 1);
 
-                    const element = document.getElementById(pathToHere.join('') + '::opener');
+                    const id = pathToHere.join('') + '::opener';
+                    const element = document.getElementById(id);
                     if (element) {
                         element.setAttribute('open', 'true');
+                        if (i === pathToNode.length - 1) {
+                            window.location.hash = '';
+                            window.location.hash = id;
+                        }
                     }
                 }
             }
@@ -131,5 +139,6 @@ export default class DataRenderer {
 
         list.replaceChildren(...formatProperties([this.viewingComponent]));
         this.parent.replaceChildren(list);
+        this.focusOn(this.focussingOn);
     }
 }

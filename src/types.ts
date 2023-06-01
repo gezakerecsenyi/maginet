@@ -132,3 +132,15 @@ export interface ParametersFrom<T extends string> extends Omit<Parameter, 'id'> 
 }
 
 export type ImmutableSpecialParameters = SpecialParameterId.Contents;
+
+export interface ToolbarOptionData {
+    tooltip: string;
+    optionType: ToolType;
+    suboptions?: ToolbarOptionData[];
+    insertableByDrag?: Component<any>;
+}
+
+export type UIBindingSpec<T extends string> = {
+    width: (T | SpecialParameterId)[];
+    height: (T | SpecialParameterId)[];
+}

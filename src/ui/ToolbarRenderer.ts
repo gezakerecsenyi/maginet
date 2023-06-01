@@ -1,10 +1,9 @@
-import ToolbarOption from '../lib/utils/ToolbarOption';
 import { toolbarOptionList } from '../lib/utils/toolbarOptionList';
 import Maginet from '../Maginet';
-import { SpecialClasses, ToolType } from '../types';
+import { SpecialClasses, ToolbarOptionData, ToolType } from '../types';
 
 export default class ToolbarRenderer {
-    static options: ToolbarOption[] = toolbarOptionList;
+    static options: ToolbarOptionData[] = toolbarOptionList;
     private suboptionsMenu: HTMLDivElement | null = null;
     private parent: HTMLElement;
     private container: HTMLDivElement | null = null;
@@ -18,7 +17,7 @@ export default class ToolbarRenderer {
         this.selectedToolCategory = ToolType.Cursor;
     }
 
-    get currentToolData() {
+    get currentToolData(): ToolbarOptionData {
         return (this.selectedToolCategory === this.maginet.spreadRenderer.selectedTool) ?
             ToolbarRenderer
                 .options

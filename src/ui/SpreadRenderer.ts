@@ -294,7 +294,7 @@ export default class SpreadRenderer {
                         this.newElement = this
                             .currentSpread
                             .addChild(
-                                new ComponentInstanceFactory(v4(), dragInsertData.component, [
+                                new ComponentInstanceFactory(v4(), dragInsertData, [
                                     new ParameterCalculator(
                                         SpecialParameterId.X,
                                         {
@@ -310,7 +310,7 @@ export default class SpreadRenderer {
                                         },
                                     ),
                                     ...(
-                                        (dragInsertData.bindHeightTo || [])
+                                        (dragInsertData.bindUITo.width || [])
                                             .map(e => new ParameterCalculator(
                                                 e,
                                                 {
@@ -320,7 +320,7 @@ export default class SpreadRenderer {
                                             ))
                                     ),
                                     ...(
-                                        (dragInsertData.bindWidthTo || [])
+                                        (dragInsertData.bindUITo.height || [])
                                             .map(e => new ParameterCalculator(
                                                 e,
                                                 {
@@ -356,8 +356,8 @@ export default class SpreadRenderer {
             this.newElement.parameterMapping = this
                 .newElement
                 .parameterMapping
-                .sFilter(e => !(toolData.bindHeightTo ?? [])
-                    .concat(...toolData.bindWidthTo ?? [])
+                .sFilter(e => !(toolData.bindUITo.width ?? [])
+                    .concat(...toolData.bindUITo.height ?? [])
                     .includes(e.id),
                 );
             this.maginet.rerender([this.newElement]);
@@ -394,7 +394,7 @@ export default class SpreadRenderer {
                 }
 
                 const toolData = this.toolbarRenderer.currentToolData.insertableByDrag!;
-                for (const param of (toolData.bindWidthTo ?? [])) {
+                for (const param of (toolData.bindUITo.width ?? [])) {
                     this.newElement.respectfullyUpdateParameter(
                         this.maginet,
                         param,
@@ -405,7 +405,7 @@ export default class SpreadRenderer {
                     );
                 }
 
-                for (const param of (toolData.bindHeightTo ?? [])) {
+                for (const param of (toolData.bindUITo.height ?? [])) {
                     this.newElement.respectfullyUpdateParameter(
                         this.maginet,
                         param,
