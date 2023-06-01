@@ -2,7 +2,14 @@ import MaginetError from '../lib/utils/MaginetError';
 import SearchableMap from '../lib/utils/SearchableMap';
 import updateFromLocation from '../lib/utils/updateFromLocation';
 import Maginet from '../Maginet';
-import { Angle, Magazine, ParameterType, ParameterValueType, SpecialParameterId } from '../types';
+import {
+    Angle,
+    ImmutableSpecialParameters,
+    Magazine,
+    ParameterType,
+    ParameterValueType,
+    SpecialParameterId,
+} from '../types';
 import { EditMode } from '../ui/SpreadRenderer';
 import { PopulatedWindow } from '../window';
 import Component from './Component';
@@ -29,7 +36,7 @@ export default class ComponentInstanceFactory<R extends Component<ParameterOf<R>
 
     constructor(
         component: R,
-        parameterMapping: ParameterCalculator<Exclude<ParameterOf<R>, SpecialParameterId.Contents>>[],
+        parameterMapping: ParameterCalculator<Exclude<ParameterOf<R>, ImmutableSpecialParameters>>[],
         id: string,
     ) {
         this.component = component;
@@ -110,19 +117,19 @@ export default class ComponentInstanceFactory<R extends Component<ParameterOf<R>
                         .getById(e.id)
                         ?.isRenderedAsChildren,
                     );
-                for (let childListParam of childParams) {
-                    if (childListParam) {
+                for (let childList of childParams) {
+                    if (childList) {
                         const childLookup = ComponentInstanceFactory.resolveParameterValue(
                             tiedTo,
                             spreads,
                             components,
                             false,
-                            childListParam.value as ComponentInstanceFactory[],
+                            childList.value as ComponentInstanceFactory[],
                             [
                                 'spreads',
                                 t.id,
                                 'parameterValues',
-                                childListParam.id,
+                                childList.id,
                                 'value',
                             ],
                         );
@@ -161,17 +168,19 @@ export default class ComponentInstanceFactory<R extends Component<ParameterOf<R>
             for (const t of searchSpace!) {
                 const item = t as ComponentInstanceFactory;
 
-                for (let idType of [
-                    SpecialParameterId.Children,
-                    SpecialParameterId.Contents,
-                ]) {
-                    const childRes = item
-                        .parameterMapping
-                        .find(p => p.id === idType);
-                    if (childRes) {
-                        if (childRes.isReference) {
+                const childParams = item
+                    .parameterMapping
+                    .filter(e => item
+                        .component
+                        .parameters
+                        .getById(e.id)
+                        ?.isRenderedAsChildren,
+                    );
+                for (let childList of childParams) {
+                    if (childList) {
+                        if (childList.isReference) {
                             const resLookup = ComponentInstanceFactory.resolveParameterValue(
-                                childRes.tiedTo!,
+                                childList.tiedTo!,
                                 spreads,
                                 components,
                                 true,
@@ -195,8 +204,8 @@ export default class ComponentInstanceFactory<R extends Component<ParameterOf<R>
                                 spreads,
                                 components,
                                 false,
-                                childRes.value as ComponentInstanceFactory[],
-                                foundAt.concat(t.id, 'parameterMapping', idType),
+                                childList.value as ComponentInstanceFactory[],
+                                foundAt.concat(t.id, 'parameterMapping', childList.id),
                             );
                             if (childLookup !== null) return childLookup;
                         }

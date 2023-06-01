@@ -29,7 +29,7 @@ export default class SpreadRenderer {
     private toolbarRenderer: ToolbarRenderer;
     private selectionStart: MouseData | null = null;
     private dragSelectionBox: HTMLDivElement | null = null;
-    private topLevelInstances: [string, ComponentInstanceFactory][] = [];
+    private topLevelInstances: (readonly [string, ComponentInstanceFactory])[] = [];
     private newElement: ComponentInstanceFactory<any> | null = null;
     private hasMovedNewElement: boolean = false;
 
@@ -569,23 +569,23 @@ export default class SpreadRenderer {
         const renderedSpread = this.currentSpread.render(new Renderer(this.maginet));
         renderedSpread.classList.add(SpecialClasses.TopLevelSpread);
 
-        this.topLevelInstances = [];
-        [
-            SpecialParameterId.Children,
-            SpecialParameterId.Contents,
-        ].forEach(source => {
-            this.topLevelInstances.push(
-                ...((
-                    this.currentSpread
-                        .parameterValues
-                        .find(e => e.id === source)
-                        ?.value as ComponentInstanceFactory[] | undefined
-                )?.map(e => [
+        this.topLevelInstances = this
+            .currentSpread
+            .parameterValues
+            .filter(e => this
+                .currentSpread
+                .component
+                .parameters
+                .getById(e.id)
+                ?.isRenderedAsChildren,
+            )
+            .map(e => (e.value as ComponentInstanceFactory[] | undefined)
+                ?.map(e => [
                     e.getInstanceId(),
                     e,
-                ] as [string, ComponentInstanceFactory]) || []),
-            );
-        });
+                ] as const) || [],
+            )
+            .flat();
 
         if (this.currentSpreadRender) {
             this.currentSpreadRender.replaceWith(renderedSpread);

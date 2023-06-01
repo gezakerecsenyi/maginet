@@ -35,6 +35,7 @@ export interface Parameter {
     id: string;
     type: ParameterType;
     isRenderedAsChildren?: boolean;
+    isImmutable?: boolean;
 }
 
 export interface ColorPrimitive {
@@ -125,3 +126,9 @@ export type RenderMethod<T extends string> = (
     parameterValue: SearchableMap<T | SpecialParameterId, ParameterValue<T>>,
     renderer: Renderer,
 ) => HTMLElement;
+
+export interface ParametersFrom<T extends string> extends Omit<Parameter, 'id'> {
+    id: T | SpecialParameterId,
+}
+
+export type ImmutableSpecialParameters = SpecialParameterId.Contents;

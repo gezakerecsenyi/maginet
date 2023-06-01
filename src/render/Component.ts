@@ -2,7 +2,8 @@ import getDefaultValueForType from '../lib/utils/getDefaultValueForType';
 import MaginetError from '../lib/utils/MaginetError';
 import SearchableMap from '../lib/utils/SearchableMap';
 import {
-    Parameter,
+    ImmutableSpecialParameters,
+    ParametersFrom,
     ParameterType,
     ParameterValue,
     ParameterValueType,
@@ -11,10 +12,6 @@ import {
 } from '../types';
 import ComponentInstanceFactory, { ParameterCalculator } from './ComponentInstanceFactory';
 import Renderer from './Renderer';
-
-export interface ParametersFrom<T extends string> extends Omit<Parameter, 'id'> {
-    id: T | SpecialParameterId,
-}
 
 export default class Component<T extends string = string> {
     public parameters: SearchableMap<T | SpecialParameterId, ParametersFrom<T>>;
@@ -26,7 +23,7 @@ export default class Component<T extends string = string> {
     public contents: ComponentInstanceFactory[];
 
     constructor(
-        parameters: ParametersFrom<Exclude<T, SpecialParameterId.Contents>>[],
+        parameters: ParametersFrom<Exclude<T, ImmutableSpecialParameters>>[],
         allowChildren: boolean,
         contents: ComponentInstanceFactory[],
         renderMethod: RenderMethod<T>,
@@ -70,6 +67,7 @@ export default class Component<T extends string = string> {
                 id: SpecialParameterId.Contents,
                 type: ParameterType.Children,
                 isRenderedAsChildren: true,
+                isImmutable: true,
             },
             ...(
                 allowChildren ?
@@ -162,6 +160,15 @@ export default class Component<T extends string = string> {
             .concatIfNew(
                 ...this
                     .defaultParameterValues
+                    .map(e => ({
+                        ...e,
+                        isReference: false,
+                    })),
+            )
+            .concatOrReplace(
+                ...this
+                    .defaultParameterValues
+                    .filter(e => this.parameters.getById(e.id)!.isImmutable)
                     .map(e => ({
                         ...e,
                         isReference: false,
