@@ -4,7 +4,7 @@ import Size from '../lib/utils/Size';
 import Maginet from '../Maginet';
 import ComponentInstanceFactory from '../render/ComponentInstanceFactory';
 import Renderer from '../render/Renderer';
-import { DefaultParameterId, SizeUnit, SpecialClasses, ToolType } from '../types';
+import { SizeUnit, SpecialClasses, SpecialParameterId, ToolType } from '../types';
 import ToolbarRenderer from './ToolbarRenderer';
 
 export enum EditMode {
@@ -297,12 +297,12 @@ export default class SpreadRenderer {
                                     dragInsertData.component,
                                     [
                                         {
-                                            id: DefaultParameterId.X,
+                                            id: SpecialParameterId.X,
                                             isReference: false,
                                             value: new Size(this.selectionStart.x, SizeUnit.PX),
                                         },
                                         {
-                                            id: DefaultParameterId.Y,
+                                            id: SpecialParameterId.Y,
                                             isReference: false,
                                             value: new Size(this.selectionStart.y, SizeUnit.PX),
                                         },
@@ -422,7 +422,7 @@ export default class SpreadRenderer {
                     const clientRect = document.getElementById(instance[0])?.getBoundingClientRect();
 
                     if (clientRect) {
-                        if (areBBsIntersecting(this.normalizeDOMRect(clientRect), selectionBoundingBox)) {
+                        if (areBBsIntersecting(selectionBoundingBox, this.normalizeDOMRect(clientRect))) {
                             this.selectedInstances = (this.selectedInstances || []).concat(instance[1]);
                         } else if (!this.ctrlPressed && this.selectedInstances) {
                             this.selectedInstances = this
@@ -452,11 +452,11 @@ export default class SpreadRenderer {
 
             const parameterDescriptors = [
                 {
-                    id: DefaultParameterId.X,
+                    id: SpecialParameterId.X,
                     offset: event.movementX / this.zoom,
                 },
                 {
-                    id: DefaultParameterId.Y,
+                    id: SpecialParameterId.Y,
                     offset: event.movementY / this.zoom,
                 },
             ];
@@ -571,8 +571,8 @@ export default class SpreadRenderer {
 
         this.topLevelInstances = [];
         [
-            DefaultParameterId.Children,
-            DefaultParameterId.Contents,
+            SpecialParameterId.Children,
+            SpecialParameterId.Contents,
         ].forEach(source => {
             this.topLevelInstances.push(
                 ...((

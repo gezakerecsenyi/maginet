@@ -234,7 +234,8 @@ body {
 
       li {
         display: block;
-        width: 20vw;
+        width: calc(20vw - 20px);
+        padding-left: 20px;
 
         &:not(:first-child) {
           padding-top: 10px;

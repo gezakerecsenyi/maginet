@@ -10,7 +10,7 @@ export interface Magazine {
     customComponents: Component[];
 }
 
-export enum DefaultParameterId {
+export enum SpecialParameterId {
     X = 'x',
     Y = 'y',
     LayerDepth = 'layerDepth',
@@ -34,6 +34,7 @@ export interface Parameter {
     displayKey: string;
     id: string;
     type: ParameterType;
+    isRenderedAsChildren?: boolean;
 }
 
 export interface ColorPrimitive {
@@ -80,14 +81,14 @@ export enum AngleUnit {
 }
 
 export interface Angle {
-    value: number;
+    angleSize: number;
     unit: AngleUnit;
 }
 
 export type ParameterValueType = number | string | Color | Font | Size | Angle | ComponentInstanceFactory<any>[];
 
 export interface ParameterValue<T extends string = string> {
-    id: T | DefaultParameterId;
+    id: T | SpecialParameterId;
     value: ParameterValueType,
 }
 
@@ -121,6 +122,6 @@ export enum ToolType {
 }
 
 export type RenderMethod<T extends string> = (
-    parameterValue: SearchableMap<T | DefaultParameterId, ParameterValue<T>>,
+    parameterValue: SearchableMap<T | SpecialParameterId, ParameterValue<T>>,
     renderer: Renderer,
 ) => HTMLElement;

@@ -1,33 +1,43 @@
 import SearchableMap from '../lib/utils/SearchableMap';
-import { DefaultParameterId, ParameterValue } from '../types';
+import { ParameterValue, SpecialParameterId } from '../types';
 import Component from './Component';
 import ComponentInstanceFactory from './ComponentInstanceFactory';
 import Renderer from './Renderer';
 
 export default class ComponentInstance<T extends string = string> {
     public component: Component<T>;
-    public parameterValues: SearchableMap<T | DefaultParameterId, ParameterValue<T>>;
-    public fromFactory: ComponentInstanceFactory<Component<T | DefaultParameterId>> | null;
-    public id: string;
+    public fromFactory: ComponentInstanceFactory<Component<T | SpecialParameterId>> | null;
 
     constructor(
         component: Component<T>,
         parameterValues: ParameterValue<T>[],
         id: string,
-        fromFactory: ComponentInstanceFactory<Component<T | DefaultParameterId>> | null = null,
+        fromFactory: ComponentInstanceFactory<Component<T | SpecialParameterId>> | null = null,
     ) {
         this.fromFactory = fromFactory;
         this.component = component;
         this.parameterValues = new SearchableMap(...parameterValues);
         this.id = id;
     }
+    public id: string;
+
+    private _parameterValues!: SearchableMap<T | SpecialParameterId, ParameterValue<T>>;
+
+    get parameterValues() {
+        return this._parameterValues;
+    }
+
+    set parameterValues(value) {
+        this._parameterValues =
+            this.component.withDefaults(value) as SearchableMap<T | SpecialParameterId, ParameterValue<T>>;
+    }
 
     addChild(child: ComponentInstanceFactory<any>) {
-        const currentChildren = this.parameterValues.getById(DefaultParameterId.Children);
+        const currentChildren = this.parameterValues.getById(SpecialParameterId.Children);
         this
             .parameterValues
             .updateById(
-                DefaultParameterId.Children,
+                SpecialParameterId.Children,
                 {
                     value: [
                         ...(currentChildren ? currentChildren.value as ComponentInstanceFactory[] : []),

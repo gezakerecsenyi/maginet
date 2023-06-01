@@ -18,6 +18,11 @@ export default class SearchableMap<Q extends string, T extends { id: Q }> extend
         return new SearchableMap<Q, T>(...this.concat(...values.filter(e => !this.some(q => q.id === e.id))));
     }
 
+    concatOrReplace(...values: T[]) {
+        return new SearchableMap<Q, T>(...this.map(e => values.find(q => q.id === e.id) ?? e))
+            .concatIfNew(...values);
+    }
+
     pushIfNew(...values: T[]) {
         values
             .filter(e => !this.some(q => q.id === e.id))

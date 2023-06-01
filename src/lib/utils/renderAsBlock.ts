@@ -1,6 +1,6 @@
 import ComponentInstanceFactory from '../../render/ComponentInstanceFactory';
 import Renderer from '../../render/Renderer';
-import { DefaultParameterId, ParameterValue, SpecialClasses } from '../../types';
+import { ParameterValue, SpecialClasses, SpecialParameterId } from '../../types';
 import Size from './Size';
 
 export default function renderAsBlock(width?: Size, height?: Size, htmlClassName?: string) {
@@ -14,12 +14,12 @@ export default function renderAsBlock(width?: Size, height?: Size, htmlClassName
         const children = [
             ...(
                 dataHere
-                    .find(e => e.id === DefaultParameterId.Contents)
+                    .find(e => e.id === SpecialParameterId.Contents)
                     ?.value || []
             ) as ComponentInstanceFactory[],
             ...(
                 dataHere
-                    .find(e => e.id === DefaultParameterId.Children)
+                    .find(e => e.id === SpecialParameterId.Children)
                     ?.value || []
             ) as ComponentInstanceFactory[],
         ];
@@ -32,12 +32,12 @@ export default function renderAsBlock(width?: Size, height?: Size, htmlClassName
                 element.style.top = (
                     child
                         .parameterValues
-                        .getById(DefaultParameterId.Y)!.value as Size
+                        .getById(SpecialParameterId.Y)!.value as Size
                 ).toCSSString();
                 element.style.left = (
                     child
                         .parameterValues
-                        .getById(DefaultParameterId.X)!.value as Size
+                        .getById(SpecialParameterId.X)!.value as Size
                 ).toCSSString();
 
                 return element;

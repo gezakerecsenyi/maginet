@@ -4,12 +4,24 @@ import ComponentInstanceFactory from '../render/ComponentInstanceFactory';
 import { ParameterType, SpecialClasses } from '../types';
 
 export default class DataRenderer {
+    get viewingComponent(): ComponentInstance<any> {
+        return this
+            .maginet
+            .magazine
+            .spreads
+            .find(e => e.id === this.maginet.currentSpreadId)!;
+    }
+
     private parent: HTMLElement;
     private maginet: Maginet;
 
     constructor(parent: HTMLElement, maginet: Maginet) {
         this.parent = parent;
         this.maginet = maginet;
+    }
+
+    focusOn(node: ComponentInstanceFactory) {
+        const nodeLocation = node.locateSelfInComponent(this.viewingComponent);
     }
 
     renderList() {
@@ -88,7 +100,7 @@ export default class DataRenderer {
             });
         };
 
-        list.replaceChildren(...formatProperties(this.maginet.magazine.spreads));
+        list.replaceChildren(...formatProperties([this.viewingComponent]));
         this.parent.replaceChildren(list);
     }
 }

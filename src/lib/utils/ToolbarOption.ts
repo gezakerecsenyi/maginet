@@ -1,10 +1,10 @@
 import Component from '../../render/Component';
-import { DefaultParameterId, ToolType } from '../../types';
+import { SpecialParameterId, ToolType } from '../../types';
 
 export interface ComponentDragSpec<T extends string> {
     component: Component<T>,
-    bindWidthTo?: (T | DefaultParameterId)[],
-    bindHeightTo?: (T | DefaultParameterId)[],
+    bindWidthTo?: (T | SpecialParameterId)[],
+    bindHeightTo?: (T | SpecialParameterId)[],
 }
 
 export interface ToolbarOptionData<T extends string> {

@@ -1,25 +1,32 @@
 import getDefaultValueForType from '../lib/utils/getDefaultValueForType';
 import MaginetError from '../lib/utils/MaginetError';
 import SearchableMap from '../lib/utils/SearchableMap';
-import { DefaultParameterId, Parameter, ParameterType, ParameterValue, RenderMethod } from '../types';
-import ComponentInstanceFactory from './ComponentInstanceFactory';
+import {
+    Parameter,
+    ParameterType,
+    ParameterValue,
+    ParameterValueType,
+    RenderMethod,
+    SpecialParameterId,
+} from '../types';
+import ComponentInstanceFactory, { ParameterCalculator } from './ComponentInstanceFactory';
 import Renderer from './Renderer';
 
 export interface ParametersFrom<T extends string> extends Omit<Parameter, 'id'> {
-    id: T | DefaultParameterId,
+    id: T | SpecialParameterId,
 }
 
 export default class Component<T extends string = string> {
-    public parameters: SearchableMap<T | DefaultParameterId, ParametersFrom<T>>;
-    public contents: ComponentInstanceFactory[];
+    public parameters: SearchableMap<T | SpecialParameterId, ParametersFrom<T>>;
     public id: string;
     public renderMethod: RenderMethod<T>;
     public displayName: string;
     public isSelectable: boolean;
     public defaultParameterValues: ParameterValue<T>[];
+    public contents: ComponentInstanceFactory[];
 
     constructor(
-        parameters: ParametersFrom<T>[],
+        parameters: ParametersFrom<Exclude<T, SpecialParameterId.Contents>>[],
         allowChildren: boolean,
         contents: ComponentInstanceFactory[],
         renderMethod: RenderMethod<T>,
@@ -31,41 +38,48 @@ export default class Component<T extends string = string> {
         this.isSelectable = isSelectable;
         this.displayName = displayName;
         this.contents = contents;
-        this.parameters = new SearchableMap(...[
+        this.parameters = new SearchableMap<T | SpecialParameterId, ParametersFrom<T>>(...[
             ...parameters,
             {
                 displayKey: 'X',
-                id: DefaultParameterId.X,
+                id: SpecialParameterId.X,
                 type: ParameterType.Size,
             },
             {
                 displayKey: 'Y',
-                id: DefaultParameterId.Y,
+                id: SpecialParameterId.Y,
                 type: ParameterType.Size,
             },
             {
                 displayKey: 'Layer Depth',
-                id: DefaultParameterId.LayerDepth,
+                id: SpecialParameterId.LayerDepth,
                 type: ParameterType.Number,
             },
             {
                 displayKey: 'Width',
-                id: DefaultParameterId.Width,
+                id: SpecialParameterId.Width,
                 type: ParameterType.Size,
             },
             {
                 displayKey: 'Height',
-                id: DefaultParameterId.Height,
+                id: SpecialParameterId.Height,
                 type: ParameterType.Size,
+            },
+            {
+                displayKey: 'Component contents',
+                id: SpecialParameterId.Contents,
+                type: ParameterType.Children,
+                isRenderedAsChildren: true,
             },
             ...(
                 allowChildren ?
                     [
                         {
-                            displayKey: 'Contents',
-                            id: DefaultParameterId.Children,
+                            displayKey: 'Sublayers',
+                            id: SpecialParameterId.Children,
                             type: ParameterType.Children,
-                        },
+                            isRenderedAsChildren: true,
+                        } as const,
                     ] :
                     []
             ),
@@ -88,8 +102,8 @@ export default class Component<T extends string = string> {
     }
 
     render(
-        parameterValues: SearchableMap<T | DefaultParameterId, ParameterValue<T>>,
-        srcInstance: ComponentInstanceFactory<Component<T | DefaultParameterId>> | null,
+        parameterValues: SearchableMap<T | SpecialParameterId, ParameterValue<T>>,
+        srcInstance: ComponentInstanceFactory<Component<T | SpecialParameterId>> | null,
         renderer: Renderer,
     ) {
         let renderRes!: HTMLElement;
@@ -134,6 +148,32 @@ export default class Component<T extends string = string> {
         } else {
             return renderRes;
         }
+    }
+
+    withDefaults(value: (ParameterCalculator<T | SpecialParameterId> | ParameterValue<T>)[]): SearchableMap<
+        T | SpecialParameterId,
+        {
+            id: T | SpecialParameterId,
+            isReference?: boolean,
+            value?: ParameterValueType
+        }
+    > {
+        return new SearchableMap(...value)
+            .concatIfNew(
+                ...this
+                    .defaultParameterValues
+                    .map(e => ({
+                        ...e,
+                        isReference: false,
+                    })),
+            )
+            .concatOrReplace(
+                {
+                    id: SpecialParameterId.Contents,
+                    isReference: false,
+                    value: this.contents,
+                },
+            );
     }
 
     addParameter(key: string, type: ParameterType, id: T) {

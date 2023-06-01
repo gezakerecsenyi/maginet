@@ -1,4 +1,4 @@
-import { DefaultParameterId, ToolType } from '../../types';
+import { SpecialParameterId, ToolType } from '../../types';
 import { TextSpan } from '../TextSpan';
 import ToolbarOption from './ToolbarOption';
 
@@ -30,8 +30,8 @@ export const toolbarOptionList: ToolbarOption<any>[] = [
         optionType: ToolType.Image,
         insertableByDrag: {
             component: TextSpan,
-            bindWidthTo: [DefaultParameterId.Width],
-            bindHeightTo: [DefaultParameterId.Height],
+            bindWidthTo: [SpecialParameterId.Width],
+            bindHeightTo: [SpecialParameterId.Height],
         },
     }),
     new ToolbarOption({
@@ -43,8 +43,8 @@ export const toolbarOptionList: ToolbarOption<any>[] = [
                 optionType: ToolType.Circle,
                 insertableByDrag: {
                     component: TextSpan,
-                    bindWidthTo: [DefaultParameterId.Width],
-                    bindHeightTo: [DefaultParameterId.Height],
+                    bindWidthTo: [SpecialParameterId.Width],
+                    bindHeightTo: [SpecialParameterId.Height],
                 },
             }),
             new ToolbarOption({
@@ -52,8 +52,8 @@ export const toolbarOptionList: ToolbarOption<any>[] = [
                 optionType: ToolType.Rectangle,
                 insertableByDrag: {
                     component: TextSpan,
-                    bindWidthTo: [DefaultParameterId.Width],
-                    bindHeightTo: [DefaultParameterId.Height],
+                    bindWidthTo: [SpecialParameterId.Width],
+                    bindHeightTo: [SpecialParameterId.Height],
                 },
             }),
             new ToolbarOption({
@@ -61,8 +61,8 @@ export const toolbarOptionList: ToolbarOption<any>[] = [
                 optionType: ToolType.Triangle,
                 insertableByDrag: {
                     component: TextSpan,
-                    bindWidthTo: [DefaultParameterId.Width],
-                    bindHeightTo: [DefaultParameterId.Height],
+                    bindWidthTo: [SpecialParameterId.Width],
+                    bindHeightTo: [SpecialParameterId.Height],
                 },
             }),
         ],

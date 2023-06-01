@@ -1,7 +1,7 @@
 import Maginet from './Maginet';
 import { PopulatedWindow } from './window';
 
-console.log('hi');
+console.log('Instantiating Maginet...');
 
 const spreadListContainer = document.getElementById('spreads')!;
 const previewContainer = document.getElementById('preview')!;

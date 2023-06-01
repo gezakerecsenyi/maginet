@@ -2,7 +2,7 @@ import MaginetError from '../lib/utils/MaginetError';
 import SearchableMap from '../lib/utils/SearchableMap';
 import updateFromLocation from '../lib/utils/updateFromLocation';
 import Maginet from '../Maginet';
-import { Angle, DefaultParameterId, Magazine, ParameterType, ParameterValueType } from '../types';
+import { Angle, Magazine, ParameterType, ParameterValueType, SpecialParameterId } from '../types';
 import { EditMode } from '../ui/SpreadRenderer';
 import { PopulatedWindow } from '../window';
 import Component from './Component';
@@ -10,7 +10,7 @@ import ComponentInstance from './ComponentInstance';
 
 export interface ParameterAssociationDescriptor {
     locationId: string;
-    id: DefaultParameterId | string;
+    id: SpecialParameterId | string;
 }
 
 export interface ParameterCalculator<T extends string> {
@@ -20,11 +20,18 @@ export interface ParameterCalculator<T extends string> {
     isReference: boolean;
 }
 
-export type ParameterOf<R> = (R extends Component<infer U> ? U : never) | DefaultParameterId;
-type ParameterMap<R extends Component<ParameterOf<R>>> = SearchableMap<ParameterOf<R>, ParameterCalculator<ParameterOf<R>>>;
+export type ParameterOf<R> = (R extends Component<infer U> ? U : never) | SpecialParameterId;
+export type ParameterMap<R extends Component<ParameterOf<R>>> = SearchableMap<ParameterOf<R>, ParameterCalculator<ParameterOf<R>>>;
 
 export default class ComponentInstanceFactory<R extends Component<ParameterOf<R>> = Component> {
-    constructor(component: R, parameterMapping: ParameterCalculator<ParameterOf<R>>[], id: string) {
+    public component;
+    public id: string;
+
+    constructor(
+        component: R,
+        parameterMapping: ParameterCalculator<Exclude<ParameterOf<R>, SpecialParameterId.Contents>>[],
+        id: string,
+    ) {
         this.component = component;
         this.parameterMapping = new SearchableMap(...parameterMapping);
         this.id = id;
@@ -32,23 +39,12 @@ export default class ComponentInstanceFactory<R extends Component<ParameterOf<R>
 
     private _parameterMapping!: ParameterMap<R>;
 
-    public component;
-
     get parameterMapping() {
         return this._parameterMapping;
     }
-    public id: string;
 
     set parameterMapping(value: ParameterMap<R>) {
-        this._parameterMapping = new SearchableMap(...value).concatIfNew(
-            ...this
-                .component
-                .defaultParameterValues
-                .map(e => ({
-                    ...e,
-                    isReference: false,
-                })),
-        );
+        this._parameterMapping = this.component.withDefaults(value) as ParameterMap<R>;
     }
 
     static resolveParameterValue<Q extends boolean>(
@@ -87,11 +83,16 @@ export default class ComponentInstanceFactory<R extends Component<ParameterOf<R>
                     spreads,
                     components,
                     false,
-                    component.contents,
+                    component
+                        .defaultParameterValues
+                        .find(e => e.id === SpecialParameterId.Contents)!
+                        .value as ComponentInstanceFactory<any>[],
                     [
                         'components',
                         component.id,
-                        'contents',
+                        'defaultParameterValues',
+                        SpecialParameterId.Contents,
+                        'value',
                     ],
                 );
 
@@ -101,25 +102,27 @@ export default class ComponentInstanceFactory<R extends Component<ParameterOf<R>
             for (const t of spreads) {
                 const spread = t as ComponentInstance;
 
-                for (let idType of [
-                    DefaultParameterId.Children,
-                    DefaultParameterId.Contents,
-                ]) {
-                    const childRes = spread
-                        .parameterValues
-                        .find(p => p.id === idType);
-                    if (childRes) {
+                const childParams = spread
+                    .parameterValues
+                    .filter(e => spread
+                        .component
+                        .parameters
+                        .getById(e.id)
+                        ?.isRenderedAsChildren,
+                    );
+                for (let childListParam of childParams) {
+                    if (childListParam) {
                         const childLookup = ComponentInstanceFactory.resolveParameterValue(
                             tiedTo,
                             spreads,
                             components,
                             false,
-                            childRes.value as ComponentInstanceFactory[],
+                            childListParam.value as ComponentInstanceFactory[],
                             [
                                 'spreads',
                                 t.id,
                                 'parameterValues',
-                                idType,
+                                childListParam.id,
                                 'value',
                             ],
                         );
@@ -159,8 +162,8 @@ export default class ComponentInstanceFactory<R extends Component<ParameterOf<R>
                 const item = t as ComponentInstanceFactory;
 
                 for (let idType of [
-                    DefaultParameterId.Children,
-                    DefaultParameterId.Contents,
+                    SpecialParameterId.Children,
+                    SpecialParameterId.Contents,
                 ]) {
                     const childRes = item
                         .parameterMapping
@@ -328,5 +331,9 @@ export default class ComponentInstanceFactory<R extends Component<ParameterOf<R>
             this.id,
             this,
         );
+    }
+
+    locateSelfInComponent(viewingComponent: ComponentInstance<any>) {
+        const component = viewingComponent;
     }
 }

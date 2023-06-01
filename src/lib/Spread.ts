@@ -1,9 +1,9 @@
 import Component from '../render/Component';
-import { DefaultParameterId, SizeUnit } from '../types';
+import { SizeUnit, SpecialParameterId } from '../types';
 import renderAsBlock from './utils/renderAsBlock';
 import Size from './utils/Size';
 
-export const Spread = new Component<DefaultParameterId>(
+export const Spread = new Component<SpecialParameterId>(
     [],
     true,
     [],
@@ -13,11 +13,11 @@ export const Spread = new Component<DefaultParameterId>(
     false,
     [
         {
-            id: DefaultParameterId.X,
+            id: SpecialParameterId.X,
             value: 0,
         },
         {
-            id: DefaultParameterId.Y,
+            id: SpecialParameterId.Y,
             value: 0,
         },
     ],

@@ -1,8 +1,8 @@
 import Component from '../render/Component';
-import { DefaultParameterId, ParameterType } from '../types';
+import { ParameterType, SpecialParameterId } from '../types';
 import Size from './utils/Size';
 
-export const TextSpan = new Component<'text' | 'fontSize' | DefaultParameterId>(
+export const TextSpan = new Component<'text' | 'fontSize' | SpecialParameterId>(
     [
         {
             id: 'text',

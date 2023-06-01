@@ -5,7 +5,7 @@ export default function getDefaultValueForType(type: ParameterType): ParameterVa
     switch (type) {
         case ParameterType.Angle:
             return {
-                value: 90,
+                angleSize: 90,
                 unit: AngleUnit.Degrees,
             };
         case ParameterType.String:

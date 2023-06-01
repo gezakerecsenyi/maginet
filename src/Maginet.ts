@@ -4,7 +4,7 @@ import { TextSpan } from './lib/TextSpan';
 import Size from './lib/utils/Size';
 import ComponentInstance from './render/ComponentInstance';
 import ComponentInstanceFactory from './render/ComponentInstanceFactory';
-import { DefaultParameterId, HistoryState, Magazine, SizeUnit, SpecialClasses, ToolType } from './types';
+import { HistoryState, Magazine, SizeUnit, SpecialClasses, SpecialParameterId, ToolType } from './types';
 import DataRenderer from './ui/DataRenderer';
 import SpreadListRenderer from './ui/SpreadListRenderer';
 import SpreadRenderer from './ui/SpreadRenderer';
@@ -28,7 +28,6 @@ export default class Maginet {
     ) {
         this.spreadRenderer = new SpreadRenderer(previewContainer, this);
         this.spreadListRenderer = new SpreadListRenderer(spreadListContainer, this);
-        this.dataRenderer = new DataRenderer(dataContainer, this);
 
         this.magazine = {
             spreads: [
@@ -36,11 +35,11 @@ export default class Maginet {
                     Spread,
                     [
                         {
-                            id: DefaultParameterId.LayerDepth,
+                            id: SpecialParameterId.LayerDepth,
                             value: new Size(40, SizeUnit.MM),
                         },
                         {
-                            id: DefaultParameterId.Children,
+                            id: SpecialParameterId.Children,
                             value: [
                                 new ComponentInstanceFactory(
                                     TextSpan,
@@ -51,15 +50,15 @@ export default class Maginet {
                                             isReference: false,
                                         },
                                         {
-                                            id: DefaultParameterId.X,
+                                            id: SpecialParameterId.X,
                                             tiedTo: {
                                                 locationId: '0',
-                                                id: DefaultParameterId.LayerDepth,
+                                                id: SpecialParameterId.LayerDepth,
                                             },
                                             isReference: true,
                                         },
                                         {
-                                            id: DefaultParameterId.Y,
+                                            id: SpecialParameterId.Y,
                                             isReference: false,
                                             value: new Size(80, SizeUnit.MM),
                                         },
@@ -75,15 +74,15 @@ export default class Maginet {
                                             isReference: false,
                                         },
                                         {
-                                            id: DefaultParameterId.X,
+                                            id: SpecialParameterId.X,
                                             tiedTo: {
                                                 locationId: '0',
-                                                id: DefaultParameterId.LayerDepth,
+                                                id: SpecialParameterId.LayerDepth,
                                             },
                                             isReference: true,
                                         },
                                         {
-                                            id: DefaultParameterId.Y,
+                                            id: SpecialParameterId.Y,
                                             isReference: false,
                                             value: new Size(100, SizeUnit.MM),
                                         },
@@ -99,15 +98,15 @@ export default class Maginet {
                                             isReference: false,
                                         },
                                         {
-                                            id: DefaultParameterId.X,
+                                            id: SpecialParameterId.X,
                                             tiedTo: {
                                                 locationId: '0',
-                                                id: DefaultParameterId.LayerDepth,
+                                                id: SpecialParameterId.LayerDepth,
                                             },
                                             isReference: true,
                                         },
                                         {
-                                            id: DefaultParameterId.Y,
+                                            id: SpecialParameterId.Y,
                                             isReference: false,
                                             value: new Size(120, SizeUnit.MM),
                                         },
@@ -130,6 +129,9 @@ export default class Maginet {
         (window as PopulatedWindow).pxInPT = this.pxInPT;
 
         this.currentSpreadId = '0';
+        this.dataRenderer = new DataRenderer(dataContainer, this);
+
+        this.resetView();
 
         this.captureHistorySnapshot();
     }
@@ -149,18 +151,24 @@ export default class Maginet {
         }
     }
 
+    set currentSpreadId(id: string) {
+        this._currentSpreadId = id;
+        this.resetView();
+    }
+
     private _currentSpreadId!: string;
 
     get currentSpreadId() {
         return this._currentSpreadId;
     }
 
-    set currentSpreadId(id: string) {
-        this._currentSpreadId = id;
-        this.rerender();
+    resetView() {
+        if (this.dataRenderer) {
+            this.rerender();
 
-        this.spreadRenderer.zoomToFit();
-        this.dataRenderer.renderList();
+            this.spreadRenderer.zoomToFit();
+            this.dataRenderer.renderList();
+        }
     }
 
     undo() {
@@ -190,6 +198,7 @@ export default class Maginet {
     select(instance: ComponentInstanceFactory[]) {
         if (this.spreadRenderer.selectedTool === ToolType.Cursor) {
             this.spreadRenderer.selectOrReplace(instance);
+            this.dataRenderer.focusOn(instance.slice(-1)[0]);
         }
     }
 
