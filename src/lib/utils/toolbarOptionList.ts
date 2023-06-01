@@ -20,7 +20,7 @@ export const toolbarOptionList: ToolbarOption<any>[] = [
                 optionType: ToolType.TextFragment,
                 insertableByDrag: {
                     component: TextSpan,
-                    bindWidthTo: [DefaultParameterId.Width],
+                    bindWidthTo: ['fontSize'],
                 },
             }),
         ],

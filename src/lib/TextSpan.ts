@@ -2,12 +2,17 @@ import Component from '../render/Component';
 import { DefaultParameterId, ParameterType } from '../types';
 import Size from './utils/Size';
 
-export const TextSpan = new Component<'text' | DefaultParameterId>(
+export const TextSpan = new Component<'text' | 'fontSize' | DefaultParameterId>(
     [
         {
             id: 'text',
             displayKey: 'Text content',
             type: ParameterType.String,
+        },
+        {
+            id: 'fontSize',
+            displayKey: 'Font size',
+            type: ParameterType.Size,
         },
     ],
     false,
@@ -15,11 +20,17 @@ export const TextSpan = new Component<'text' | DefaultParameterId>(
     (data) => {
         const span = document.createElement('span');
         span.innerText = data.getById('text')!.value as string;
-        span.style.backgroundColor = '#aaaaff';
         span.style.display = 'inline-block';
-        span.style.width = (data.getById(DefaultParameterId.Width)!.value as Size).toCSSString();
+        span.style.fontSize = (data.getById('fontSize')!.value as Size).toCSSString();
         return span;
     },
     'TextSpan',
     'Text segment',
+    true,
+    [
+        {
+            id: 'text',
+            value: 'A',
+        },
+    ],
 );

@@ -21,15 +21,26 @@ export interface ParameterCalculator<T extends string> {
 }
 
 export type ParameterOf<R> = (R extends Component<infer U> ? U : never) | DefaultParameterId;
+type ParameterMap<R extends Component<ParameterOf<R>>> = SearchableMap<ParameterOf<R>, ParameterCalculator<ParameterOf<R>>>;
 
 export default class ComponentInstanceFactory<R extends Component<ParameterOf<R>> = Component> {
-    public component;
-    public parameterMapping: SearchableMap<ParameterOf<R>, ParameterCalculator<ParameterOf<R>>>;
-    public id: string;
-
     constructor(component: R, parameterMapping: ParameterCalculator<ParameterOf<R>>[], id: string) {
         this.component = component;
-        this.parameterMapping = new SearchableMap(...parameterMapping).concatIfNew(
+        this.parameterMapping = new SearchableMap(...parameterMapping);
+        this.id = id;
+    }
+
+    private _parameterMapping!: ParameterMap<R>;
+
+    public component;
+
+    get parameterMapping() {
+        return this._parameterMapping;
+    }
+    public id: string;
+
+    set parameterMapping(value: ParameterMap<R>) {
+        this._parameterMapping = new SearchableMap(...value).concatIfNew(
             ...this
                 .component
                 .defaultParameterValues
@@ -38,7 +49,6 @@ export default class ComponentInstanceFactory<R extends Component<ParameterOf<R>
                     isReference: false,
                 })),
         );
-        this.id = id;
     }
 
     static resolveParameterValue<Q extends boolean>(

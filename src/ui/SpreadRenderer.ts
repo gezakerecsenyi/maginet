@@ -31,6 +31,7 @@ export default class SpreadRenderer {
     private dragSelectionBox: HTMLDivElement | null = null;
     private topLevelInstances: [string, ComponentInstanceFactory][] = [];
     private newElement: ComponentInstanceFactory<any> | null = null;
+    private hasMovedNewElement: boolean = false;
 
     constructor(parent: HTMLElement, maginet: Maginet) {
         this.parent = parent;
@@ -288,6 +289,7 @@ export default class SpreadRenderer {
                     });
 
                     if (dragInsertData) {
+                        this.hasMovedNewElement = false;
                         this.newElement = this
                             .currentSpread
                             .addChild(
@@ -325,7 +327,7 @@ export default class SpreadRenderer {
                                 ),
                             );
 
-                        this.maginet.rerender();
+                        this.maginet.rerender([this.newElement]);
                     }
 
                     if (!this.ctrlPressed) {
@@ -342,6 +344,18 @@ export default class SpreadRenderer {
         if (event.button === 1) {
             event.preventDefault();
             this.isPanning = false;
+        }
+
+        if (event.button === 0 && this.newElement && !this.hasMovedNewElement) {
+            const toolData = this.toolbarRenderer.currentToolData.insertableByDrag!;
+            this.newElement.parameterMapping = this
+                .newElement
+                .parameterMapping
+                .sFilter(e => !(toolData.bindHeightTo ?? [])
+                    .concat(...toolData.bindWidthTo ?? [])
+                    .includes(e.id),
+                );
+            this.maginet.rerender([this.newElement]);
         }
 
         this.isDraggingWorkspace = false;
@@ -370,7 +384,12 @@ export default class SpreadRenderer {
             selectionBoundingBox.bottom = selectionBoundingBox.top + selectionBoundingBox.height;
 
             if (this.newElement) {
-                for (const param of (this.toolbarRenderer.currentToolData.insertableByDrag!.bindWidthTo ?? [])) {
+                if (selectionBoundingBox.height !== 0 || selectionBoundingBox.width !== 0) {
+                    this.hasMovedNewElement = true;
+                }
+
+                const toolData = this.toolbarRenderer.currentToolData.insertableByDrag!;
+                for (const param of (toolData.bindWidthTo ?? [])) {
                     this.newElement.respectfullyUpdateParameter(
                         this.maginet,
                         param,
@@ -381,7 +400,7 @@ export default class SpreadRenderer {
                     );
                 }
 
-                for (const param of (this.toolbarRenderer.currentToolData.insertableByDrag!.bindHeightTo ?? [])) {
+                for (const param of (toolData.bindHeightTo ?? [])) {
                     this.newElement.respectfullyUpdateParameter(
                         this.maginet,
                         param,
