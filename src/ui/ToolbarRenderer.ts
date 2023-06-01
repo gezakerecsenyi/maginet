@@ -70,7 +70,6 @@ export default class ToolbarRenderer {
                     e.stopPropagation();
 
                     if (!option.suboptions) {
-                        console.log('setting tool');
                         this.maginet.spreadRenderer.selectedTool = option.optionType;
                         this.selectedToolCategory = option.optionType;
 

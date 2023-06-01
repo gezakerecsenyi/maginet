@@ -36,7 +36,6 @@ export default class ComponentInstance<T extends string = string> {
                 },
             );
 
-        // return [this.id, 'parameterValues', 'children', 'value', child.id];
         return child;
     }
 

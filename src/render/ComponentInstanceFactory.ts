@@ -203,7 +203,7 @@ export default class ComponentInstanceFactory<R extends Component<ParameterOf<R>
     ) {
         const parameterHere = this
             .parameterMapping
-            .find(e => e.id === parameter);
+            .getById(parameter);
 
         if (!parameterHere?.isReference) {
             this

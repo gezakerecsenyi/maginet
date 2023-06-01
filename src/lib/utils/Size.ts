@@ -2,27 +2,27 @@ import { SizeUnit } from '../../types';
 import { PopulatedWindow } from '../../window';
 
 export default class Size {
-    public value: number;
+    public readonly distance: number;
     public unit: SizeUnit;
 
-    constructor(value: number, unit: SizeUnit) {
-        this.value = value;
+    constructor(distance: number, unit: SizeUnit) {
+        this.distance = distance;
         this.unit = unit;
     }
 
-    toString() {
-        return `${this.value}${this.unit}`;
+    toCSSString() {
+        return `${this.distance}${this.unit}`;
     }
 
     add(addend: Size) {
         return new Size(
-            this.toType(SizeUnit.PX).value + addend.toType(SizeUnit.PX).value,
+            this.toType(SizeUnit.PX).distance + addend.toType(SizeUnit.PX).distance,
             SizeUnit.PX,
         ).toType(this.unit);
     }
 
     subtract(addend: Size) {
-        return this.add(new Size(-addend.value, addend.unit));
+        return this.add(new Size(-addend.distance, addend.unit));
     }
 
     toType(toType: SizeUnit) {
@@ -36,21 +36,21 @@ export default class Size {
 
         let value = 0;
         if (this.unit === SizeUnit.MM) {
-            if (toType === SizeUnit.MM) value = this.value;
-            if (toType === SizeUnit.PT) value = this.value / mmInPT;
-            if (toType === SizeUnit.PX) value = this.value * pxInMM;
+            if (toType === SizeUnit.MM) value = this.distance;
+            if (toType === SizeUnit.PT) value = this.distance / mmInPT;
+            if (toType === SizeUnit.PX) value = this.distance * pxInMM;
         }
 
         if (this.unit === SizeUnit.PT) {
-            if (toType === SizeUnit.MM) value = this.value * mmInPT;
-            if (toType === SizeUnit.PT) value = this.value;
-            if (toType === SizeUnit.PX) value = this.value * pxInPT;
+            if (toType === SizeUnit.MM) value = this.distance * mmInPT;
+            if (toType === SizeUnit.PT) value = this.distance;
+            if (toType === SizeUnit.PX) value = this.distance * pxInPT;
         }
 
         if (this.unit === SizeUnit.PX) {
-            if (toType === SizeUnit.MM) value = this.value / pxInMM;
-            if (toType === SizeUnit.PT) value = this.value / pxInPT;
-            if (toType === SizeUnit.PX) value = this.value;
+            if (toType === SizeUnit.MM) value = this.distance / pxInMM;
+            if (toType === SizeUnit.PT) value = this.distance / pxInPT;
+            if (toType === SizeUnit.PX) value = this.distance;
         }
 
         return new Size(value, toType);

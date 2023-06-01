@@ -297,12 +297,12 @@ export default class SpreadRenderer {
                                         {
                                             id: DefaultParameterId.X,
                                             isReference: false,
-                                            value: this.selectionStart.x,
+                                            value: new Size(this.selectionStart.x, SizeUnit.PX),
                                         },
                                         {
                                             id: DefaultParameterId.Y,
                                             isReference: false,
-                                            value: this.selectionStart.y,
+                                            value: new Size(this.selectionStart.y, SizeUnit.PX),
                                         },
                                         ...(
                                             (dragInsertData.bindHeightTo || [])

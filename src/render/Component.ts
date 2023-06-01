@@ -2,7 +2,7 @@ import getDefaultValueForType from '../lib/utils/getDefaultValueForType';
 import MaginetError from '../lib/utils/MaginetError';
 import SearchableMap from '../lib/utils/SearchableMap';
 import { DefaultParameterId, Parameter, ParameterType, ParameterValue, RenderMethod } from '../types';
-import ComponentInstanceFactory from './ComponentInstanceFactory';
+import ComponentInstanceFactory, { ParameterCalculator } from './ComponentInstanceFactory';
 import Renderer from './Renderer';
 
 export interface ParametersFrom<T extends string> extends Omit<Parameter, 'id'> {
@@ -98,11 +98,17 @@ export default class Component<T extends string = string> {
             renderRes = this.renderMethod(populatedParams, renderer);
 
             if (!renderRes) throw 0;
-        } catch (e: any) {
+        } catch (err: any) {
             // prevent nested catches (thus blaming the top-most element)
-            if (e.name === MaginetError.Name) {
-                throw e;
+            if (err.name === MaginetError.Name) {
+                throw err;
             }
+
+            const processValue = (e: ParameterValue | ParameterCalculator<any>) => (
+                Object.hasOwn(e.value as object, 'length') ?
+                    `[array (${(e.value as ComponentInstanceFactory[]).length})]` :
+                    JSON.stringify(e.value)
+            );
 
             throw new MaginetError(
                 `Failed to render component of type ${this.displayName} (${this.id}/` +
@@ -112,16 +118,18 @@ export default class Component<T extends string = string> {
                     .map(e => `\t${e.displayKey} (${e.id})`)
                     .join('\n')
                 + `\n\nGot:\n` + populatedParams
-                    .map(e => `\t${e.id} == ${e.value}`)
+                    .map(e => `\t${e.id} == ${processValue(e)}`)
                     .join('\n')
                 + `\n\nFrom:\n` + (
                     srcInstance
                         ?.parameterMapping
-                        .map(e => `\t${e.id} == ${e.value ?? `[reference to ${e.tiedTo?.locationId}::${e.tiedTo?.id}]`}`)
+                        .map(e => `\t${e.id} == ${e.value ?
+                            processValue(e) :
+                            `[reference to ${e.tiedTo?.locationId}::${e.tiedTo?.id}]`}`)
                         .join('\n') || '\t[unknown]'
                 ) + `\n\n(+assuming defaults of:\n` + this
                     .defaultParameterValues
-                    .map(e => `\t${e.id} == ${e.value}`)
+                    .map(e => `\t${e.id} == ${processValue(e)}`)
                     .join('\n')
                 + `)\n`,
             );

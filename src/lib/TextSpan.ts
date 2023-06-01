@@ -17,7 +17,7 @@ export const TextSpan = new Component<'text' | DefaultParameterId>(
         span.innerText = data.getById('text')!.value as string;
         span.style.backgroundColor = '#aaaaff';
         span.style.display = 'inline-block';
-        span.style.width = (data.getById(DefaultParameterId.Width)!.value as Size).toString();
+        span.style.width = (data.getById(DefaultParameterId.Width)!.value as Size).toCSSString();
         return span;
     },
     'TextSpan',

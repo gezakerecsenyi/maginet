@@ -8,8 +8,8 @@ export default function renderAsBlock(width?: Size, height?: Size, htmlClassName
         const element = document.createElement('div');
         element.style.position = 'relative';
         element.className = `${SpecialClasses.GeneratedBlock} ${htmlClassName || ''}`;
-        element.style.width = width?.toString() || '0px';
-        element.style.height = height?.toString() || '0px';
+        element.style.width = width?.toCSSString() || '0px';
+        element.style.height = height?.toCSSString() || '0px';
 
         const children = [
             ...(
@@ -24,21 +24,21 @@ export default function renderAsBlock(width?: Size, height?: Size, htmlClassName
             ) as ComponentInstanceFactory[],
         ];
         children
-            .map(child => child.composeComponentInstance(renderer.maginet.magazine))
-            .map(child => {
+            .map((child) => child.composeComponentInstance(renderer.maginet.magazine))
+            .map((child) => {
                 const element = child.render(renderer);
 
                 element.style.position = 'absolute';
                 element.style.top = (
                     child
                         .parameterValues
-                        .find((e: ParameterValue) => e.id === DefaultParameterId.Y)!.value as Size
-                ).toString();
+                        .getById(DefaultParameterId.Y)!.value as Size
+                ).toCSSString();
                 element.style.left = (
                     child
                         .parameterValues
-                        .find((e: ParameterValue) => e.id === DefaultParameterId.X)!.value as Size
-                ).toString();
+                        .getById(DefaultParameterId.X)!.value as Size
+                ).toCSSString();
 
                 return element;
             })
