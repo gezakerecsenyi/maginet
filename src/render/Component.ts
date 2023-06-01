@@ -2,7 +2,7 @@ import getDefaultValueForType from '../lib/utils/getDefaultValueForType';
 import MaginetError from '../lib/utils/MaginetError';
 import SearchableMap from '../lib/utils/SearchableMap';
 import { DefaultParameterId, Parameter, ParameterType, ParameterValue, RenderMethod } from '../types';
-import ComponentInstanceFactory, { ParameterCalculator } from './ComponentInstanceFactory';
+import ComponentInstanceFactory from './ComponentInstanceFactory';
 import Renderer from './Renderer';
 
 export interface ParametersFrom<T extends string> extends Omit<Parameter, 'id'> {
@@ -10,7 +10,7 @@ export interface ParametersFrom<T extends string> extends Omit<Parameter, 'id'> 
 }
 
 export default class Component<T extends string = string> {
-    public parameters: ParametersFrom<T>[];
+    public parameters: SearchableMap<T | DefaultParameterId, ParametersFrom<T>>;
     public contents: ComponentInstanceFactory[];
     public id: string;
     public renderMethod: RenderMethod<T>;
@@ -31,7 +31,7 @@ export default class Component<T extends string = string> {
         this.isSelectable = isSelectable;
         this.displayName = displayName;
         this.contents = contents;
-        this.parameters = [
+        this.parameters = new SearchableMap(...[
             ...parameters,
             {
                 displayKey: 'X',
@@ -69,7 +69,7 @@ export default class Component<T extends string = string> {
                     ] :
                     []
             ),
-        ];
+        ]);
         this.defaultParameterValues = this
             .parameters
             .map(e => {
@@ -93,9 +93,8 @@ export default class Component<T extends string = string> {
         renderer: Renderer,
     ) {
         let renderRes!: HTMLElement;
-        const populatedParams = parameterValues.concatIfNew(...this.defaultParameterValues);
         try {
-            renderRes = this.renderMethod(populatedParams, renderer);
+            renderRes = this.renderMethod(parameterValues, renderer);
 
             if (!renderRes) throw 0;
         } catch (err: any) {
@@ -104,12 +103,6 @@ export default class Component<T extends string = string> {
                 throw err;
             }
 
-            const processValue = (e: ParameterValue | ParameterCalculator<any>) => (
-                Object.hasOwn(e.value as object, 'length') ?
-                    `[array (${(e.value as ComponentInstanceFactory[]).length})]` :
-                    JSON.stringify(e.value)
-            );
-
             throw new MaginetError(
                 `Failed to render component of type ${this.displayName} (${this.id}/` +
                 `${srcInstance?.id || '[unknown]'}). Check that all data is properly being passed in, and that the ` +
@@ -117,19 +110,19 @@ export default class Component<T extends string = string> {
                     .parameters
                     .map(e => `\t${e.displayKey} (${e.id})`)
                     .join('\n')
-                + `\n\nGot:\n` + populatedParams
-                    .map(e => `\t${e.id} == ${processValue(e)}`)
+                + `\n\nGot:\n` + parameterValues
+                    .map(e => `\t${e.id} == ${MaginetError.processValue(e.value)}`)
                     .join('\n')
                 + `\n\nFrom:\n` + (
                     srcInstance
                         ?.parameterMapping
                         .map(e => `\t${e.id} == ${e.value ?
-                            processValue(e) :
+                            MaginetError.processValue(e.value) :
                             `[reference to ${e.tiedTo?.locationId}::${e.tiedTo?.id}]`}`)
                         .join('\n') || '\t[unknown]'
                 ) + `\n\n(+assuming defaults of:\n` + this
                     .defaultParameterValues
-                    .map(e => `\t${e.id} == ${processValue(e)}`)
+                    .map(e => `\t${e.id} == ${MaginetError.processValue(e.value)}`)
                     .join('\n')
                 + `)\n`,
             );
@@ -152,6 +145,6 @@ export default class Component<T extends string = string> {
     }
 
     removeParameter(id: T) {
-        this.parameters = this.parameters.filter(e => e.id !== id);
+        this.parameters = this.parameters.sFilter(e => e.id !== id);
     }
 }

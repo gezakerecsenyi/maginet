@@ -34,4 +34,15 @@ export default class SearchableMap<Q extends string, T extends { id: Q }> extend
 
         return false;
     }
+
+    sFilter(predicate: (value: T, index: number, array: T[]) => boolean, thisArg?: any): SearchableMap<Q, T> {
+        return new SearchableMap(...super.filter(predicate, thisArg));
+    }
+
+    sMap<U extends { id: Q }>(
+        callbackfn: (value: T, index: number, array: T[]) => U,
+        thisArg?: any,
+    ): SearchableMap<Q, U> {
+        return new SearchableMap(...super.map(callbackfn, thisArg));
+    }
 }

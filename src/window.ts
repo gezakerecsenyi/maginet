@@ -1,1 +1,5 @@
-export type PopulatedWindow = Window & { pxInMM?: number; pxInPT?: number };
+export type PopulatedWindow = Window & {
+    pxInMM?: number;
+    pxInPT?: number;
+    debug?: boolean;
+};

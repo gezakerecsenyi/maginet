@@ -1,8 +1,10 @@
+import MaginetError from '../lib/utils/MaginetError';
 import SearchableMap from '../lib/utils/SearchableMap';
 import updateFromLocation from '../lib/utils/updateFromLocation';
 import Maginet from '../Maginet';
-import { DefaultParameterId, Magazine, ParameterValueType } from '../types';
+import { Angle, DefaultParameterId, Magazine, ParameterType, ParameterValueType } from '../types';
 import { EditMode } from '../ui/SpreadRenderer';
+import { PopulatedWindow } from '../window';
 import Component from './Component';
 import ComponentInstance from './ComponentInstance';
 
@@ -18,7 +20,7 @@ export interface ParameterCalculator<T extends string> {
     isReference: boolean;
 }
 
-export type ParameterOf<R> = R extends Component<infer U> ? (U | DefaultParameterId) : never;
+export type ParameterOf<R> = (R extends Component<infer U> ? U : never) | DefaultParameterId;
 
 export default class ComponentInstanceFactory<R extends Component<ParameterOf<R>> = Component> {
     public component;
@@ -27,7 +29,15 @@ export default class ComponentInstanceFactory<R extends Component<ParameterOf<R>
 
     constructor(component: R, parameterMapping: ParameterCalculator<ParameterOf<R>>[], id: string) {
         this.component = component;
-        this.parameterMapping = new SearchableMap(...parameterMapping);
+        this.parameterMapping = new SearchableMap(...parameterMapping).concatIfNew(
+            ...this
+                .component
+                .defaultParameterValues
+                .map(e => ({
+                    ...e,
+                    isReference: false,
+                })),
+        );
         this.id = id;
     }
 
@@ -250,16 +260,61 @@ export default class ComponentInstanceFactory<R extends Component<ParameterOf<R>
     composeComponentInstance(magazine: Magazine) {
         return new ComponentInstance<ParameterOf<R>>(
             this.component,
-            this.parameterMapping.map(p => ({
-                ...this.component.parameters.find(e => e.id == p.id)!,
-                value: p.value ?? (ComponentInstanceFactory.resolveParameterValue(
+            this.parameterMapping.map(p => {
+                const valueHere = p.value ?? (ComponentInstanceFactory.resolveParameterValue(
                     p.tiedTo!,
                     magazine.spreads,
                     magazine.customComponents,
                     true,
                     null,
-                )[0] || 0),
-            })),
+                )[0] || 0);
+
+                const parameterDetails = this.component.parameters.getById(p.id)!;
+                if ((window as PopulatedWindow).debug) {
+                    let isGood = true;
+
+                    switch (parameterDetails?.type) {
+                        case ParameterType.Number:
+                            isGood = typeof valueHere === 'number';
+                            break;
+                        case ParameterType.Color:
+                            isGood = typeof valueHere === 'object' && Object.hasOwn(valueHere, 'type');
+                            break;
+                        case ParameterType.Font:
+                        case ParameterType.String:
+                            isGood = typeof valueHere === 'string';
+                            break;
+                        case ParameterType.Size:
+                            isGood = typeof valueHere === 'object' && Object.hasOwn(valueHere, 'distance');
+                            break;
+                        case ParameterType.Angle:
+                            isGood = typeof valueHere === 'object' &&
+                                Object.hasOwn(valueHere, 'unit') &&
+                                [
+                                    'deg',
+                                    'rad',
+                                ].includes((valueHere as Angle).unit);
+                            break;
+                        case ParameterType.Children:
+                            isGood = typeof valueHere === 'object' && Object.hasOwn(valueHere, 'length');
+                            break;
+                    }
+
+                    if (!isGood) {
+                        throw new MaginetError(
+                            `Detected discrepancy in passed data for parameter ${parameterDetails.displayKey} (in ` +
+                            `instance ${this.id} of ${this.component.displayName}/${this.component.id}):\n` +
+                            `\tExpected type: ${parameterDetails.type}\n\tGot value: ` +
+                            `${MaginetError.processValue(valueHere)}\n`,
+                        );
+                    }
+                }
+
+                return {
+                    ...parameterDetails,
+                    value: valueHere,
+                };
+            }),
             this.id,
             this,
         );

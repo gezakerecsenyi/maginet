@@ -21,13 +21,13 @@ export enum DefaultParameterId {
 }
 
 export enum ParameterType {
-    Number,
-    String,
-    Color,
-    Font,
-    Size,
-    Angle,
-    Children,
+    Number = 'number',
+    String = 'string',
+    Color = 'color',
+    Font = 'font',
+    Size = 'size',
+    Angle = 'angle',
+    Children = '(children)',
 }
 
 export interface Parameter {
@@ -75,8 +75,8 @@ export enum SizeUnit {
 }
 
 export enum AngleUnit {
-    Degrees,
-    Radians,
+    Degrees = 'deg',
+    Radians = 'rad',
 }
 
 export interface Angle {
