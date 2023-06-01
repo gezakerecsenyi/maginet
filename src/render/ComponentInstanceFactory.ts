@@ -7,6 +7,7 @@ import {
     ImmutableSpecialParameters,
     Magazine,
     ParameterType,
+    ParameterValue,
     ParameterValueType,
     SpecialParameterId,
 } from '../types';
@@ -14,210 +15,38 @@ import { EditMode } from '../ui/SpreadRenderer';
 import { PopulatedWindow } from '../window';
 import Component from './Component';
 import ComponentInstance from './ComponentInstance';
+import { ParameterCalculator } from './ParameterCalculator';
 
 export interface ParameterAssociationDescriptor {
     locationId: string;
     id: SpecialParameterId | string;
 }
 
-export interface ParameterCalculator<T extends string> {
-    id: T;
-    value?: ParameterValueType;
-    tiedTo?: ParameterAssociationDescriptor;
-    isReference: boolean;
-}
-
 export type ParameterOf<R> = (R extends Component<infer U> ? U : never) | SpecialParameterId;
-export type ParameterMap<R extends Component<ParameterOf<R>>> = SearchableMap<ParameterOf<R>, ParameterCalculator<ParameterOf<R>>>;
+export type ParameterCalculatorMap<R extends Component<ParameterOf<R>>> = SearchableMap<ParameterOf<R>, ParameterCalculator<ParameterOf<R>>>;
 
 export default class ComponentInstanceFactory<R extends Component<ParameterOf<R>> = Component> {
     public component;
     public id: string;
 
+    private _parameterMapping!: ParameterCalculatorMap<R>;
+
     constructor(
+        id: string,
         component: R,
         parameterMapping: ParameterCalculator<Exclude<ParameterOf<R>, ImmutableSpecialParameters>>[],
-        id: string,
     ) {
         this.component = component;
         this.parameterMapping = new SearchableMap(...parameterMapping);
         this.id = id;
     }
 
-    private _parameterMapping!: ParameterMap<R>;
-
     get parameterMapping() {
         return this._parameterMapping;
     }
 
-    set parameterMapping(value: ParameterMap<R>) {
-        this._parameterMapping = this.component.withDefaults(value) as ParameterMap<R>;
-    }
-
-    static resolveParameterValue<Q extends boolean>(
-        tiedTo: ParameterAssociationDescriptor,
-        spreads: ComponentInstance[],
-        components: Component[],
-        isTopLevel: Q,
-        searchSpace: Q extends true ? null : ComponentInstanceFactory[],
-        foundAt: string[] = [],
-    ): [ParameterValueType | null, string[]] {
-        if (isTopLevel) {
-            for (const t of spreads) {
-                const spread = t as ComponentInstance;
-
-                if (spread.id === tiedTo.locationId) {
-                    const res = spread.parameterValues.find(p => p.id === tiedTo.id);
-                    if (res) {
-                        return [
-                            res.value,
-                            [
-                                'spreads',
-                                t.id,
-                                'parameterValues',
-                                tiedTo.id,
-                                'value',
-                            ],
-                        ];
-                    }
-                }
-            }
-
-            for (const component of components) {
-                // components can't themselves have params, so we can just jump straight to looking at children
-                const lookupHere = ComponentInstanceFactory.resolveParameterValue(
-                    tiedTo,
-                    spreads,
-                    components,
-                    false,
-                    component
-                        .defaultParameterValues
-                        .find(e => e.id === SpecialParameterId.Contents)!
-                        .value as ComponentInstanceFactory<any>[],
-                    [
-                        'components',
-                        component.id,
-                        'defaultParameterValues',
-                        SpecialParameterId.Contents,
-                        'value',
-                    ],
-                );
-
-                if (lookupHere !== null) return lookupHere;
-            }
-
-            for (const t of spreads) {
-                const spread = t as ComponentInstance;
-
-                const childParams = spread
-                    .parameterValues
-                    .filter(e => spread
-                        .component
-                        .parameters
-                        .getById(e.id)
-                        ?.isRenderedAsChildren,
-                    );
-                for (let childList of childParams) {
-                    if (childList) {
-                        const childLookup = ComponentInstanceFactory.resolveParameterValue(
-                            tiedTo,
-                            spreads,
-                            components,
-                            false,
-                            childList.value as ComponentInstanceFactory[],
-                            [
-                                'spreads',
-                                t.id,
-                                'parameterValues',
-                                childList.id,
-                                'value',
-                            ],
-                        );
-                        if (childLookup !== null) return childLookup;
-                    }
-                }
-            }
-        } else {
-            for (const t of searchSpace!) {
-                const item = t as ComponentInstanceFactory;
-
-                if (item.id === tiedTo.locationId) {
-                    const res = item
-                        .parameterMapping
-                        .find(p => p.id === tiedTo.id);
-
-                    if (res) {
-                        if (res.isReference) {
-                            return ComponentInstanceFactory.resolveParameterValue(
-                                res.tiedTo!,
-                                spreads,
-                                components,
-                                true,
-                                null,
-                            );
-                        } else {
-                            return [
-                                res.value!,
-                                foundAt.concat(t.id, 'parameterMapping', tiedTo.id, 'value'),
-                            ];
-                        }
-                    }
-                }
-            }
-
-            for (const t of searchSpace!) {
-                const item = t as ComponentInstanceFactory;
-
-                const childParams = item
-                    .parameterMapping
-                    .filter(e => item
-                        .component
-                        .parameters
-                        .getById(e.id)
-                        ?.isRenderedAsChildren,
-                    );
-                for (let childList of childParams) {
-                    if (childList) {
-                        if (childList.isReference) {
-                            const resLookup = ComponentInstanceFactory.resolveParameterValue(
-                                childList.tiedTo!,
-                                spreads,
-                                components,
-                                true,
-                                null,
-                            );
-
-                            if (resLookup) {
-                                const childLookup = ComponentInstanceFactory.resolveParameterValue(
-                                    tiedTo,
-                                    spreads,
-                                    components,
-                                    false,
-                                    resLookup[0] as ComponentInstanceFactory[],
-                                    resLookup[1],
-                                );
-                                if (childLookup !== null) return childLookup;
-                            }
-                        } else {
-                            const childLookup = ComponentInstanceFactory.resolveParameterValue(
-                                tiedTo,
-                                spreads,
-                                components,
-                                false,
-                                childList.value as ComponentInstanceFactory[],
-                                foundAt.concat(t.id, 'parameterMapping', childList.id),
-                            );
-                            if (childLookup !== null) return childLookup;
-                        }
-                    }
-                }
-            }
-        }
-
-        return [
-            null,
-            [],
-        ];
+    set parameterMapping(value: ParameterCalculatorMap<R>) {
+        this._parameterMapping = this.component.withDefaults(value) as ParameterCalculatorMap<R>;
     }
 
     static getInstanceId(instance: ComponentInstanceFactory<any>): string {
@@ -247,10 +76,8 @@ export default class ComponentInstanceFactory<R extends Component<ParameterOf<R>
                     },
                 );
         } else if (parameterHere) {
-            let [resolvedValue, resolvedValueLocation] = ComponentInstanceFactory.resolveParameterValue(
-                parameterHere.tiedTo!,
-                maginet.magazine.spreads,
-                maginet.magazine.customComponents,
+            let [resolvedValue, resolvedValueLocation] = parameterHere.resolveValue(
+                maginet.magazine,
                 true,
                 null,
             );
@@ -280,69 +107,80 @@ export default class ComponentInstanceFactory<R extends Component<ParameterOf<R>
     }
 
     composeComponentInstance(magazine: Magazine) {
-        return new ComponentInstance<ParameterOf<R>>(
-            this.component,
-            this.parameterMapping.map(p => {
-                const valueHere = p.value ?? (ComponentInstanceFactory.resolveParameterValue(
-                    p.tiedTo!,
-                    magazine.spreads,
-                    magazine.customComponents,
-                    true,
-                    null,
-                )[0] || 0);
+        return new ComponentInstance<ParameterOf<R>>(this.id, this.parameterMapping.map(p => {
+            const valueHere = p.value ?? (p.resolveValue(
+                magazine,
+                true,
+                null,
+            )[0] || 0);
 
-                const parameterDetails = this.component.parameters.getById(p.id)!;
-                if ((window as PopulatedWindow).debug) {
-                    let isGood = true;
+            const parameterDetails = this.component.parameters.getById(p.id)!;
+            if ((window as PopulatedWindow).debug) {
+                let isGood = true;
 
-                    switch (parameterDetails?.type) {
-                        case ParameterType.Number:
-                            isGood = typeof valueHere === 'number';
-                            break;
-                        case ParameterType.Color:
-                            isGood = typeof valueHere === 'object' && Object.hasOwn(valueHere, 'type');
-                            break;
-                        case ParameterType.Font:
-                        case ParameterType.String:
-                            isGood = typeof valueHere === 'string';
-                            break;
-                        case ParameterType.Size:
-                            isGood = typeof valueHere === 'object' && Object.hasOwn(valueHere, 'distance');
-                            break;
-                        case ParameterType.Angle:
-                            isGood = typeof valueHere === 'object' &&
-                                Object.hasOwn(valueHere, 'unit') &&
-                                [
-                                    'deg',
-                                    'rad',
-                                ].includes((valueHere as Angle).unit);
-                            break;
-                        case ParameterType.Children:
-                            isGood = typeof valueHere === 'object' && Object.hasOwn(valueHere, 'length');
-                            break;
-                    }
-
-                    if (!isGood) {
-                        throw new MaginetError(
-                            `Detected discrepancy in passed data for parameter ${parameterDetails.displayKey} (in ` +
-                            `instance ${this.id} of ${this.component.displayName}/${this.component.id}):\n` +
-                            `\tExpected type: ${parameterDetails.type}\n\tGot value: ` +
-                            `${MaginetError.processValue(valueHere)}\n`,
-                        );
-                    }
+                switch (parameterDetails?.type) {
+                    case ParameterType.Number:
+                        isGood = typeof valueHere === 'number';
+                        break;
+                    case ParameterType.Color:
+                        isGood = typeof valueHere === 'object' && Object.hasOwn(valueHere, 'type');
+                        break;
+                    case ParameterType.Font:
+                    case ParameterType.String:
+                        isGood = typeof valueHere === 'string';
+                        break;
+                    case ParameterType.Size:
+                        isGood = typeof valueHere === 'object' && Object.hasOwn(valueHere, 'distance');
+                        break;
+                    case ParameterType.Angle:
+                        isGood = typeof valueHere === 'object' &&
+                            Object.hasOwn(valueHere, 'unit') &&
+                            [
+                                'deg',
+                                'rad',
+                            ].includes((valueHere as Angle).unit);
+                        break;
+                    case ParameterType.Children:
+                        isGood = typeof valueHere === 'object' && Object.hasOwn(valueHere, 'length');
+                        break;
                 }
 
-                return {
-                    ...parameterDetails,
-                    value: valueHere,
-                };
-            }),
-            this.id,
-            this,
-        );
+                if (!isGood) {
+                    throw new MaginetError(
+                        `Detected discrepancy in passed data for parameter ${parameterDetails.displayKey} (in ` +
+                        `instance ${this.id} of ${this.component.displayName}/${this.component.id}):\n` +
+                        `\tExpected type: ${parameterDetails.type}\n\tGot value: ` +
+                        `${MaginetError.processValue(valueHere)}\n`,
+                    );
+                }
+            }
+
+            return {
+                ...parameterDetails,
+                value: valueHere,
+            };
+        }), this.component, this);
     }
 
-    locateSelfInComponent(viewingComponent: ComponentInstance<any>) {
-        const component = viewingComponent;
+    locateSelfInComponent<T extends string>(
+        parameters: SearchableMap<T | SpecialParameterId, ParameterValue<T>>,
+        component: Component<T>,
+        pathSoFar: string[] = [],
+    ) {
+        const childrenHere = parameters
+            .asSecondaryKey(component.parameters)
+            .filter(e => e.isRenderedAsChildren)
+            .map(e => [
+                e.id,
+                e.value as ComponentInstanceFactory[],
+            ] as const);
+
+        for (let childListHere of childrenHere) {
+            if (childListHere[1].find(e => e.id === this.id)) {
+                return pathSoFar.concat(childListHere[0], this.id);
+            }
+        }
+
+        return null;
     }
 }

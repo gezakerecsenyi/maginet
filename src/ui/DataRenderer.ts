@@ -21,7 +21,7 @@ export default class DataRenderer {
     }
 
     focusOn(node: ComponentInstanceFactory) {
-        const nodeLocation = node.locateSelfInComponent(this.viewingComponent);
+        // const nodeLocation = node.locateSelfInComponent(this.viewingComponent.parameterValues);
     }
 
     renderList() {

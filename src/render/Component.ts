@@ -10,7 +10,8 @@ import {
     RenderMethod,
     SpecialParameterId,
 } from '../types';
-import ComponentInstanceFactory, { ParameterCalculator } from './ComponentInstanceFactory';
+import ComponentInstanceFactory from './ComponentInstanceFactory';
+import { ParameterCalculator } from './ParameterCalculator';
 import Renderer from './Renderer';
 
 export default class Component<T extends string = string> {

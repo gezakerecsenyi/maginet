@@ -4,6 +4,7 @@ import { TextSpan } from './lib/TextSpan';
 import Size from './lib/utils/Size';
 import ComponentInstance from './render/ComponentInstance';
 import ComponentInstanceFactory from './render/ComponentInstanceFactory';
+import { ParameterCalculator } from './render/ParameterCalculator';
 import { HistoryState, Magazine, SizeUnit, SpecialClasses, SpecialParameterId, ToolType } from './types';
 import DataRenderer from './ui/DataRenderer';
 import SpreadListRenderer from './ui/SpreadListRenderer';
@@ -32,7 +33,7 @@ export default class Maginet {
         this.magazine = {
             spreads: [
                 new ComponentInstance(
-                    Spread,
+                    '0',
                     [
                         {
                             id: SpecialParameterId.LayerDepth,
@@ -42,81 +43,99 @@ export default class Maginet {
                             id: SpecialParameterId.Children,
                             value: [
                                 new ComponentInstanceFactory(
-                                    TextSpan,
-                                    [
-                                        {
-                                            id: 'text',
-                                            value: 'Testing 123!',
-                                            isReference: false,
-                                        },
-                                        {
-                                            id: SpecialParameterId.X,
-                                            tiedTo: {
-                                                locationId: '0',
-                                                id: SpecialParameterId.LayerDepth,
-                                            },
-                                            isReference: true,
-                                        },
-                                        {
-                                            id: SpecialParameterId.Y,
-                                            isReference: false,
-                                            value: new Size(80, SizeUnit.MM),
-                                        },
-                                    ],
                                     'text0',
-                                ),
-                                new ComponentInstanceFactory(
                                     TextSpan,
                                     [
-                                        {
-                                            id: 'text',
-                                            value: 'Test-2',
-                                            isReference: false,
-                                        },
-                                        {
-                                            id: SpecialParameterId.X,
-                                            tiedTo: {
-                                                locationId: '0',
-                                                id: SpecialParameterId.LayerDepth,
+                                        new ParameterCalculator(
+                                            'text',
+                                            {
+                                                isReference: false,
+                                                value: 'Testing 123',
                                             },
-                                            isReference: true,
-                                        },
-                                        {
-                                            id: SpecialParameterId.Y,
-                                            isReference: false,
-                                            value: new Size(100, SizeUnit.MM),
-                                        },
+                                        ),
+                                        new ParameterCalculator(
+                                            SpecialParameterId.X,
+                                            {
+                                                tiedTo: {
+                                                    locationId: '0',
+                                                    id: SpecialParameterId.LayerDepth,
+                                                },
+                                                isReference: true,
+                                            },
+                                        ),
+                                        new ParameterCalculator(
+                                            SpecialParameterId.Y,
+                                            {
+                                                isReference: false,
+                                                value: new Size(80, SizeUnit.MM),
+                                            },
+                                        ),
                                     ],
+                                ),
+                                new ComponentInstanceFactory(
                                     'text1',
-                                ),
-                                new ComponentInstanceFactory(
                                     TextSpan,
                                     [
-                                        {
-                                            id: 'text',
-                                            value: 'Test-3',
-                                            isReference: false,
-                                        },
-                                        {
-                                            id: SpecialParameterId.X,
-                                            tiedTo: {
-                                                locationId: '0',
-                                                id: SpecialParameterId.LayerDepth,
+                                        new ParameterCalculator(
+                                            'text',
+                                            {
+                                                value: 'Test-2',
+                                                isReference: false,
                                             },
-                                            isReference: true,
-                                        },
-                                        {
-                                            id: SpecialParameterId.Y,
-                                            isReference: false,
-                                            value: new Size(120, SizeUnit.MM),
-                                        },
+                                        ),
+                                        new ParameterCalculator(
+                                            SpecialParameterId.X,
+                                            {
+                                                tiedTo: {
+                                                    locationId: '0',
+                                                    id: SpecialParameterId.LayerDepth,
+                                                },
+                                                isReference: true,
+                                            },
+                                        ),
+                                        new ParameterCalculator(
+                                            SpecialParameterId.Y,
+                                            {
+                                                isReference: false,
+                                                value: new Size(100, SizeUnit.MM),
+                                            },
+                                        ),
                                     ],
+                                ),
+                                new ComponentInstanceFactory(
                                     'text2',
+                                    TextSpan,
+                                    [
+                                        new ParameterCalculator(
+                                            'text',
+                                            {
+                                                value: 'Test-3',
+                                                isReference: false,
+                                            },
+                                        ),
+                                        new ParameterCalculator(
+                                            SpecialParameterId.X,
+                                            {
+                                                tiedTo: {
+                                                    locationId: '0',
+                                                    id: SpecialParameterId.LayerDepth,
+                                                },
+                                                isReference: true,
+                                            },
+                                        ),
+                                        new ParameterCalculator(
+                                            SpecialParameterId.Y,
+                                            {
+                                                isReference: false,
+                                                value: new Size(120, SizeUnit.MM),
+                                            },
+                                        ),
+                                    ],
                                 ),
                             ],
                         },
                     ],
-                    '0',
+                    Spread,
                 ),
             ],
             customComponents: [],
@@ -151,15 +170,15 @@ export default class Maginet {
         }
     }
 
-    set currentSpreadId(id: string) {
-        this._currentSpreadId = id;
-        this.resetView();
-    }
-
     private _currentSpreadId!: string;
 
     get currentSpreadId() {
         return this._currentSpreadId;
+    }
+
+    set currentSpreadId(id: string) {
+        this._currentSpreadId = id;
+        this.resetView();
     }
 
     resetView() {

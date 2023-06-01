@@ -3,6 +3,18 @@ export default class SearchableMap<Q extends string, T extends { id: Q }> extend
         return this.find(e => e.id === id);
     }
 
+    asSecondaryKey<R extends { id: Q }>(parentArray: R[]): (T & R)[] {
+        const searchableParent = new SearchableMap(
+            ...parentArray.filter(e => this.some(v => v.id === e.id)),
+        );
+        return this
+            .filter(q => parentArray.some(v => v.id === q.id))
+            .map(e => ({
+                ...e,
+                ...searchableParent.getById(e.id)!,
+            }));
+    }
+
     setById(id: Q, value: T) {
         const index = this.findIndex(e => e.id === id);
 

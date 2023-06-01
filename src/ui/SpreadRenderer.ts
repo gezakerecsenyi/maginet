@@ -3,6 +3,7 @@ import areBBsIntersecting, { BasicDOMRect } from '../lib/utils/areBBsIntersectin
 import Size from '../lib/utils/Size';
 import Maginet from '../Maginet';
 import ComponentInstanceFactory from '../render/ComponentInstanceFactory';
+import { ParameterCalculator } from '../render/ParameterCalculator';
 import Renderer from '../render/Renderer';
 import { SizeUnit, SpecialClasses, SpecialParameterId, ToolType } from '../types';
 import ToolbarRenderer from './ToolbarRenderer';
@@ -293,38 +294,42 @@ export default class SpreadRenderer {
                         this.newElement = this
                             .currentSpread
                             .addChild(
-                                new ComponentInstanceFactory(
-                                    dragInsertData.component,
-                                    [
+                                new ComponentInstanceFactory(v4(), dragInsertData.component, [
+                                    new ParameterCalculator(
+                                        SpecialParameterId.X,
                                         {
-                                            id: SpecialParameterId.X,
                                             isReference: false,
                                             value: new Size(this.selectionStart.x, SizeUnit.PX),
                                         },
+                                    ),
+                                    new ParameterCalculator(
+                                        SpecialParameterId.Y,
                                         {
-                                            id: SpecialParameterId.Y,
                                             isReference: false,
                                             value: new Size(this.selectionStart.y, SizeUnit.PX),
                                         },
-                                        ...(
-                                            (dragInsertData.bindHeightTo || [])
-                                                .map(e => ({
-                                                    id: e,
+                                    ),
+                                    ...(
+                                        (dragInsertData.bindHeightTo || [])
+                                            .map(e => new ParameterCalculator(
+                                                e,
+                                                {
                                                     isReference: false,
                                                     value: new Size(0, SizeUnit.PX),
-                                                }))
-                                        ),
-                                        ...(
-                                            (dragInsertData.bindWidthTo || [])
-                                                .map(e => ({
-                                                    id: e,
+                                                },
+                                            ))
+                                    ),
+                                    ...(
+                                        (dragInsertData.bindWidthTo || [])
+                                            .map(e => new ParameterCalculator(
+                                                e,
+                                                {
                                                     isReference: false,
                                                     value: new Size(0, SizeUnit.PX),
-                                                }))
-                                        ),
-                                    ],
-                                    v4(),
-                                ),
+                                                },
+                                            ))
+                                    ),
+                                ]),
                             );
 
                         this.maginet.rerender([this.newElement]);
@@ -572,13 +577,8 @@ export default class SpreadRenderer {
         this.topLevelInstances = this
             .currentSpread
             .parameterValues
-            .filter(e => this
-                .currentSpread
-                .component
-                .parameters
-                .getById(e.id)
-                ?.isRenderedAsChildren,
-            )
+            .asSecondaryKey(this.currentSpread.component.parameters)
+            .filter(e => e.isRenderedAsChildren)
             .map(e => (e.value as ComponentInstanceFactory[] | undefined)
                 ?.map(e => [
                     e.getInstanceId(),
