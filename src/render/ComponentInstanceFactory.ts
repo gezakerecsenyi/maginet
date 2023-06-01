@@ -29,8 +29,6 @@ export default class ComponentInstanceFactory<R extends Component<ParameterOf<R>
     public component;
     public id: string;
 
-    private _parameterMapping!: ParameterCalculatorMap<R>;
-
     constructor(
         id: string,
         component: R,
@@ -40,6 +38,8 @@ export default class ComponentInstanceFactory<R extends Component<ParameterOf<R>
         this.parameterMapping = new SearchableMap(...parameterMapping);
         this.id = id;
     }
+
+    private _parameterMapping!: ParameterCalculatorMap<R>;
 
     get parameterMapping() {
         return this._parameterMapping;
@@ -163,11 +163,12 @@ export default class ComponentInstanceFactory<R extends Component<ParameterOf<R>
     }
 
     locateSelfInComponent<T extends string>(
-        parameters: SearchableMap<T | SpecialParameterId, ParameterValue<T>>,
+        magazine: Magazine,
+        parameterValues: SearchableMap<T | SpecialParameterId, ParameterValue<T>>,
         component: Component<T>,
         pathSoFar: string[] = [],
-    ) {
-        const childrenHere = parameters
+    ): string[] | null {
+        const childrenHere = parameterValues
             .asSecondaryKey(component.parameters)
             .filter(e => e.isRenderedAsChildren)
             .map(e => [
@@ -178,6 +179,37 @@ export default class ComponentInstanceFactory<R extends Component<ParameterOf<R>
         for (let childListHere of childrenHere) {
             if (childListHere[1].find(e => e.id === this.id)) {
                 return pathSoFar.concat(childListHere[0], this.id);
+            }
+        }
+
+        for (let childListHere of childrenHere) {
+            for (let child of childListHere[1]) {
+                const resolvedParameters = child
+                    .parameterMapping
+                    .map(e => {
+                        const valueHere = e.resolveValue(
+                            magazine,
+                            true,
+                            null,
+                        );
+                        return {
+                            id: e.id,
+                            value: valueHere[0]!,
+                            path: valueHere[1],
+                        };
+                    })
+                    .filter((e) => e.value !== null) as ParameterValue[];
+
+                const resHere = this.locateSelfInComponent(
+                    magazine,
+                    new SearchableMap<string, ParameterValue>(...resolvedParameters),
+                    child.component,
+                    pathSoFar.concat(childListHere[0], 'value', child.id, 'parameterMapping'),
+                );
+
+                if (resHere) {
+                    return resHere;
+                }
             }
         }
 

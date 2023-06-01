@@ -78,7 +78,7 @@ export default class SpreadRenderer {
 
     set selectedTool(value: ToolType) {
         if (value !== ToolType.Cursor) {
-            this.selectedInstances = null;
+            this.maginet.deselectAll();
         }
 
         this._selectedTool = value;
@@ -336,7 +336,7 @@ export default class SpreadRenderer {
                     }
 
                     if (!this.ctrlPressed) {
-                        this.selectedInstances = null;
+                        this.maginet.deselectAll();
                     }
 
                     this.isDraggingWorkspace = true;
@@ -637,7 +637,7 @@ export default class SpreadRenderer {
         }
     }
 
-    deselectAll() {
+    locallyDeselectAll() {
         this.selectedInstances = null;
     }
 }

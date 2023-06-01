@@ -222,7 +222,8 @@ export default class Maginet {
     }
 
     deselectAll() {
-        this.spreadRenderer.deselectAll();
+        this.spreadRenderer.locallyDeselectAll();
+        this.dataRenderer.focusOn(null);
     }
 
     makeSelectable(element: HTMLElement, instance: ComponentInstanceFactory | null) {
