@@ -4,6 +4,7 @@ import updateFromLocation from '../lib/utils/updateFromLocation';
 import validateType from '../lib/utils/validateType';
 import Maginet from '../Maginet';
 import {
+    ComponentCompositionType,
     ImmutableSpecialParameters,
     Magazine,
     ParameterValue,
@@ -27,6 +28,7 @@ export type ParameterCalculatorMap<R extends Component<ParameterOf<R>>> = Search
 export default class ComponentInstanceFactory<R extends Component<ParameterOf<R>> = Component> {
     public component;
     public id: string;
+    public readonly compositionType = ComponentCompositionType.Factory;
 
     constructor(
         id: string,
@@ -97,8 +99,8 @@ export default class ComponentInstanceFactory<R extends Component<ParameterOf<R>
                 if (resolvedValueLocation.length) {
                     updateFromLocation(
                         maginet.magazine,
-                        update(resolvedValue!, resolvedValueLocation),
                         resolvedValueLocation,
+                        update(resolvedValue!, resolvedValueLocation),
                     );
                 }
             }

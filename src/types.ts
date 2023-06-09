@@ -1,3 +1,4 @@
+import { Color } from './lib/utils/Color';
 import SearchableMap from './lib/utils/SearchableMap';
 import Size from './lib/utils/Size';
 import Component from './render/Component';
@@ -38,6 +39,12 @@ export interface Parameter {
     isImmutable?: boolean;
 }
 
+export enum RerenderOption {
+    All,
+    Previews,
+    None,
+}
+
 export interface ColorPrimitive {
     red: number;
     green: number;
@@ -51,21 +58,19 @@ export enum ColorType {
     Solid,
 }
 
+export enum ComponentCompositionType {
+    Instance,
+    Factory,
+}
+
 export enum GradientType {
-    Radial,
-    Linear,
+    Radial = 'radial',
+    Linear = 'linear',
 }
 
 export interface GradientPoint {
     position: number;
-    color: ColorPrimitive;
-}
-
-export interface Color {
-    type: ColorType;
-    gradientType?: GradientType;
-    solidColor?: ColorPrimitive;
-    gradientColor?: GradientPoint[];
+    color: Color<ColorType.Solid>;
 }
 
 export type Font = string;

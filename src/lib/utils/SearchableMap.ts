@@ -1,15 +1,15 @@
 export default class SearchableMap<Q extends string, T extends { id: Q }> extends Array<T> {
-    getById(id: Q) {
-        return this.find(e => e.id === id);
+    getById<V extends Partial<T> = {}, M extends Q = Q>(id: M) {
+        return this.find(e => e.id === id) as Exclude<(V & T), 'id'> & { id: M } | undefined;
     }
 
-    asSecondaryKey<R extends { id: Q }>(parentArray: R[]): (T & R)[] {
+    asSecondaryKey<R extends { id: Q }>(parentArray: R[]): SearchableMap<Q, T & R> {
         const searchableParent = new SearchableMap(
             ...parentArray.filter(e => this.some(v => v.id === e.id)),
         );
         return this
-            .filter(q => parentArray.some(v => v.id === q.id))
-            .map(e => ({
+            .sFilter(q => parentArray.some(v => v.id === q.id))
+            .sMap(e => ({
                 ...e,
                 ...searchableParent.getById(e.id)!,
             }));

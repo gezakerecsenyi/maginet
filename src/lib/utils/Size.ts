@@ -2,7 +2,7 @@ import { SizeUnit } from '../../types';
 import { PopulatedWindow } from '../../window';
 
 export default class Size {
-    public readonly distance: number;
+    public distance: number;
     public unit: SizeUnit;
 
     constructor(distance: number, unit: SizeUnit) {
@@ -10,8 +10,8 @@ export default class Size {
         this.unit = unit;
     }
 
-    toCSSString() {
-        return `${this.distance}${this.unit}`;
+    toCSSString(roundTo = 8) {
+        return `${Math.round(this.distance * Math.pow(10, roundTo)) / Math.pow(10, roundTo)}${this.unit}`;
     }
 
     add(addend: Size) {

@@ -1,5 +1,5 @@
 import SearchableMap from '../lib/utils/SearchableMap';
-import { ParameterValue, SpecialParameterId } from '../types';
+import { ComponentCompositionType, ParameterValue, SpecialParameterId } from '../types';
 import Component from './Component';
 import ComponentInstanceFactory from './ComponentInstanceFactory';
 import Renderer from './Renderer';
@@ -7,6 +7,7 @@ import Renderer from './Renderer';
 export default class ComponentInstance<T extends string = string> {
     public component: Component<T>;
     public fromFactory: ComponentInstanceFactory<Component<T | SpecialParameterId>> | null;
+    public readonly compositionType = ComponentCompositionType.Instance;
 
     constructor(
         id: string,

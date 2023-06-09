@@ -1,8 +1,9 @@
+import { Color } from '../lib/utils/Color';
 import Size from '../lib/utils/Size';
 import Maginet from '../Maginet';
 import ComponentInstance from '../render/ComponentInstance';
 import ComponentInstanceFactory from '../render/ComponentInstanceFactory';
-import { ParameterType, ParameterValueType, SpecialClasses } from '../types';
+import { ParameterType, ParameterValueType, RerenderOption, SizeUnit, SpecialClasses } from '../types';
 
 export default class DataRenderer {
     private parent: HTMLElement;
@@ -40,12 +41,11 @@ export default class DataRenderer {
                 const pathToNode = [
                     this.viewingComponent.id,
                     ...nodeLocation,
-                ]
-                    .map(e => `.${e}`);
+                ];
                 for (let i = 0; i < pathToNode.length; i++) {
                     const pathToHere = pathToNode.slice(0, i + 1);
 
-                    const id = pathToHere.join('') + '::opener';
+                    const id = pathToHere.join('.') + '::opener';
                     const element = document.getElementById(id);
                     if (element) {
                         element.setAttribute('open', 'true');
@@ -61,11 +61,11 @@ export default class DataRenderer {
 
     renderList() {
         const list = document.createElement('ol');
-        const formatProperties = (list: ComponentInstance[], currentPath = ''): HTMLElement[] => {
+        const formatProperties = (list: ComponentInstance[], currentPath: string[] = []): HTMLElement[] => {
             return list.map(instance => {
                 const elementContainer = document.createElement('li');
                 const elementHere = document.createElement('details');
-                elementHere.setAttribute('id', `${currentPath}.${instance.id}::opener`);
+                elementHere.setAttribute('id', `${currentPath.concat(instance.id).join('.')}::opener`);
 
                 const listHere = document.createElement('ul');
 
@@ -96,7 +96,7 @@ export default class DataRenderer {
                         propertyLabel.innerText = property;
 
                         valueLabel = document.createElement('details');
-                        valueLabel.setAttribute('id', `${currentPath}.${instance.id}.${id}::opener`);
+                        valueLabel.setAttribute('id', `${currentPath.concat(instance.id, id).join('.')}::opener`);
                         valueLabel.className = 'child-list';
 
                         const childList = document.createElement('ol');
@@ -109,7 +109,7 @@ export default class DataRenderer {
                         entry.appendChild(valueLabel);
                     }
 
-                    entry.setAttribute('id', `${currentPath}.${instance.id}.${id}`);
+                    entry.setAttribute('id', currentPath.concat(instance.id, id).join('.'));
                     entry.appendChild(valueLabel);
 
                     listHere.appendChild(entry);
@@ -126,7 +126,11 @@ export default class DataRenderer {
                         if (parameter.type !== ParameterType.Children) {
                             addPropertyEntry(
                                 parameter.displayKey,
-                                this.getEditorFor(parameter.value, parameter.type),
+                                this.getEditorFor(
+                                    parameter.value,
+                                    parameter.type,
+                                    currentPath.concat(instance.id, parameter.id),
+                                ),
                                 parameter.id,
                             );
                         } else {
@@ -136,7 +140,7 @@ export default class DataRenderer {
                                     (parameter.value as ComponentInstanceFactory[]).map(
                                         e => e.composeComponentInstance(this.maginet.magazine),
                                     ),
-                                    `${currentPath}.${instance.id}.${parameter.id}`,
+                                    currentPath.concat(instance.id, parameter.id),
                                 ),
                                 parameter.id,
                             );
@@ -157,12 +161,87 @@ export default class DataRenderer {
     public getEditorFor(
         value: ParameterValueType,
         type: ParameterType,
+        location: string[],
     ): HTMLElement {
         switch (type) {
-            case ParameterType.Size:
+            case ParameterType.Size: {
                 const node = document.createElement('span');
-                node.innerText = (value as Size).toCSSString();
+                node.className = 'size-editor';
+
+                const distance = document.createElement('input');
+                distance.type = 'number';
+                distance.valueAsNumber = (value as Size).distance;
+
+                const unit = document.createElement('select');
+                const options = [
+                    SizeUnit.PX,
+                    SizeUnit.MM,
+                    SizeUnit.PT,
+                ]
+                    .map(e => {
+                        const option = document.createElement('option');
+                        option.innerText = e;
+                        option.value = e;
+
+                        return option;
+                    });
+                unit.replaceChildren(...options);
+                unit.value = (value as Size).unit;
+
+                let currentValue = value as Size;
+                const listener = () => {
+                    this.maginet.updateSpreadParameterFromLocation(
+                        location,
+                        new Size(distance.valueAsNumber, unit.value as SizeUnit),
+                        RerenderOption.Previews,
+                    );
+                };
+                unit.addEventListener('change', () => {
+                    currentValue.distance = distance.valueAsNumber;
+                    currentValue = currentValue.toType(unit.value as SizeUnit);
+                    distance.valueAsNumber = currentValue.distance;
+
+                    this.maginet.updateSpreadParameterFromLocation(
+                        location,
+                        currentValue,
+                        RerenderOption.Previews,
+                    );
+                });
+                distance.addEventListener('input', listener);
+
+                node.replaceChildren(distance, unit);
+
                 return node;
+            }
+            case ParameterType.String: {
+                const node = document.createElement('span');
+
+                const lNode = document.createElement('span');
+                const rNode = document.createElement('span');
+                lNode.innerText = `"`;
+                rNode.innerText = `"`;
+
+                const cNode = document.createElement('span');
+                cNode.contentEditable = 'true';
+                cNode.className = 'editable';
+                cNode.innerText = value as string;
+
+                const id = `${location.join('.')}::editor`;
+                cNode.setAttribute('id', id);
+                cNode.addEventListener('input', () => {
+                    const newValue = cNode.innerText;
+                    this.maginet.updateSpreadParameterFromLocation(location, newValue, RerenderOption.Previews);
+                });
+
+                node.replaceChildren(lNode, cNode, rNode);
+
+                return node;
+            }
+            case ParameterType.Color: {
+                const node = document.createElement('span');
+                node.innerText = (value as Color).toCSSString();
+                return node;
+            }
         }
 
         const fallbackNode = document.createElement('span');

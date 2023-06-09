@@ -7,7 +7,7 @@ export default function validateType(type: ParameterType, value: ParameterValueT
             isGood = typeof value === 'number';
             break;
         case ParameterType.Color:
-            isGood = typeof value === 'object' && Object.hasOwn(value, 'type');
+            isGood = typeof value === 'object' && Object.hasOwn(value, 'isColor');
             break;
         case ParameterType.Font:
         case ParameterType.String:

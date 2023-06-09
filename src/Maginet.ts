@@ -5,7 +5,17 @@ import Size from './lib/utils/Size';
 import ComponentInstance from './render/ComponentInstance';
 import ComponentInstanceFactory from './render/ComponentInstanceFactory';
 import { ParameterCalculator } from './render/ParameterCalculator';
-import { HistoryState, Magazine, SizeUnit, SpecialClasses, SpecialParameterId, ToolType } from './types';
+import {
+    ComponentCompositionType,
+    HistoryState,
+    Magazine,
+    ParameterValueType,
+    RerenderOption,
+    SizeUnit,
+    SpecialClasses,
+    SpecialParameterId,
+    ToolType,
+} from './types';
 import DataRenderer from './ui/DataRenderer';
 import SpreadListRenderer from './ui/SpreadListRenderer';
 import SpreadRenderer from './ui/SpreadRenderer';
@@ -238,5 +248,63 @@ export default class Maginet {
         }
 
         return element;
+    }
+
+    updateSpreadParameterFromLocation(location: string[], value: ParameterValueType, rerender = RerenderOption.All) {
+        const attemptToTraverse = (
+            instanceOrFactory: ComponentInstance | ComponentInstanceFactory,
+            location: string[],
+        ) => {
+            if (instanceOrFactory.compositionType === ComponentCompositionType.Factory) {
+                if (location.length === 1) {
+                    instanceOrFactory.respectfullyUpdateParameter(this, location[0], () => value);
+
+                    if (rerender === RerenderOption.All) {
+                        this.rerender([instanceOrFactory]);
+                    } else if (rerender === RerenderOption.Previews) {
+                        this.spreadRenderer.renderCurrentSpread([instanceOrFactory]);
+                        this.spreadListRenderer.updatePreviews();
+                    }
+
+                    return;
+                }
+
+                const children = instanceOrFactory
+                    .parameterMapping
+                    .getById(location[0])
+                    ?.value as ComponentInstanceFactory[];
+                attemptToTraverse(
+                    children.find(e => e.id === location[1])!,
+                    location.slice(2),
+                );
+            } else {
+                if (location.length === 1) {
+                    instanceOrFactory.parameterValues.updateById(location[0], { value });
+
+                    if (rerender === RerenderOption.All) {
+                        this.rerender();
+                    } else if (rerender === RerenderOption.Previews) {
+                        this.spreadRenderer.renderCurrentSpread();
+                        this.spreadListRenderer.updatePreviews();
+                    }
+
+                    return;
+                }
+
+                const children = instanceOrFactory
+                    .parameterValues
+                    .getById(location[0])
+                    ?.value as ComponentInstanceFactory[];
+                attemptToTraverse(
+                    children.find(e => e.id === location[1])!,
+                    location.slice(2),
+                );
+            }
+        };
+
+        attemptToTraverse(
+            this.magazine.spreads.find(e => e.id === location[0])!,
+            location.slice(1),
+        );
     }
 }

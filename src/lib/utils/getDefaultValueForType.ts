@@ -1,4 +1,5 @@
 import { AngleUnit, ColorType, ParameterType, ParameterValueType, SizeUnit } from '../../types';
+import { Color } from './Color';
 import Size from './Size';
 
 export default function getDefaultValueForType(type: ParameterType): ParameterValueType {
@@ -17,16 +18,16 @@ export default function getDefaultValueForType(type: ParameterType): ParameterVa
         case ParameterType.Children:
             return [];
         case ParameterType.Color:
-            return {
+            return new Color({
                 type: ColorType.Solid,
-                solidColor: {
+                values: {
                     red: 255,
                     green: 0,
                     blue: 0,
                     alpha: 1,
                     noise: 0,
                 },
-            };
+            });
         case ParameterType.Font:
             return 'Arial';
     }

@@ -1,8 +1,9 @@
 import Component from '../render/Component';
 import { ParameterType, SpecialParameterId } from '../types';
+import { Color } from './utils/Color';
 import Size from './utils/Size';
 
-export const TextSpan = new Component<'text' | 'fontSize' | SpecialParameterId>(
+export const TextSpan = new Component<'text' | 'color' | 'fontSize' | SpecialParameterId>(
     [
         {
             id: 'text',
@@ -14,6 +15,11 @@ export const TextSpan = new Component<'text' | 'fontSize' | SpecialParameterId>(
             displayKey: 'Font size',
             type: ParameterType.Size,
         },
+        {
+            id: 'color',
+            displayKey: 'Text color',
+            type: ParameterType.Color,
+        },
     ],
     false,
     [],
@@ -22,6 +28,7 @@ export const TextSpan = new Component<'text' | 'fontSize' | SpecialParameterId>(
         span.innerText = data.getById('text')!.value as string;
         span.style.display = 'inline-block';
         span.style.width = 'max-content';
+        span.style.color = (data.getById('color')!.value as Color).toCSSString();
         span.style.fontSize = (data.getById('fontSize')!.value as Size).toCSSString();
         return span;
     },
