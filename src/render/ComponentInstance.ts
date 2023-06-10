@@ -1,5 +1,8 @@
+import MaginetError from '../lib/utils/MaginetError';
 import SearchableMap from '../lib/utils/SearchableMap';
+import validateType from '../lib/utils/validateType';
 import { ComponentCompositionType, ParameterValue, SpecialParameterId } from '../types';
+import { PopulatedWindow } from '../window';
 import Component from './Component';
 import ComponentInstanceFactory from './ComponentInstanceFactory';
 import Renderer from './Renderer';
@@ -8,6 +11,7 @@ export default class ComponentInstance<T extends string = string> {
     public component: Component<T>;
     public fromFactory: ComponentInstanceFactory<Component<T | SpecialParameterId>> | null;
     public readonly compositionType = ComponentCompositionType.Instance;
+    public id: string;
 
     constructor(
         id: string,
@@ -15,12 +19,12 @@ export default class ComponentInstance<T extends string = string> {
         parameterValues: ParameterValue<T>[],
         fromFactory: ComponentInstanceFactory<Component<SpecialParameterId | T>> | null = null,
     ) {
+        this.id = id;
+
         this.fromFactory = fromFactory;
         this.component = component;
         this.parameterValues = new SearchableMap(...parameterValues);
-        this.id = id;
     }
-    public id: string;
 
     private _parameterValues!: SearchableMap<T | SpecialParameterId, ParameterValue<T>>;
 
@@ -29,8 +33,25 @@ export default class ComponentInstance<T extends string = string> {
     }
 
     set parameterValues(value) {
-        this._parameterValues =
-            this.component.withDefaults(value) as SearchableMap<T | SpecialParameterId, ParameterValue<T>>;
+        this._parameterValues = this
+            .component
+            .withDefaults(value) as SearchableMap<T | SpecialParameterId, ParameterValue<T>>;
+
+        if ((window as PopulatedWindow).debug) {
+            this
+                ._parameterValues
+                .asSecondaryKey(this.component.parameters)
+                .forEach(param => {
+                    if (!validateType(param.type, param.value)) {
+                        throw new MaginetError(
+                            `Detected discrepancy in passed data for parameter ${param.displayKey} (in ` +
+                            `component update for ${this.component.displayName} instance ${this.id}):\n` +
+                            `\tExpected type: ${param.type}\n\tGot value: ` +
+                            `${MaginetError.processValue(param.value)}\n`,
+                        );
+                    }
+                });
+        }
     }
 
     addChild(child: ComponentInstanceFactory<any>) {

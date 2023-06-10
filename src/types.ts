@@ -41,6 +41,7 @@ export interface Parameter {
 
 export enum RerenderOption {
     All,
+    PreviewsAndLinked,
     Previews,
     None,
 }

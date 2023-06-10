@@ -9,6 +9,7 @@ import {
     ComponentCompositionType,
     HistoryState,
     Magazine,
+    ParameterType,
     ParameterValueType,
     RerenderOption,
     SizeUnit,
@@ -47,7 +48,7 @@ export default class Maginet {
                     Spread,
                     [
                         {
-                            id: SpecialParameterId.LayerDepth,
+                            id: 'moving-x',
                             value: new Size(40, SizeUnit.MM),
                         },
                         {
@@ -69,7 +70,7 @@ export default class Maginet {
                                             {
                                                 tiedTo: {
                                                     locationId: '0',
-                                                    id: SpecialParameterId.LayerDepth,
+                                                    id: 'moving-x',
                                                 },
                                                 isReference: true,
                                             },
@@ -99,7 +100,7 @@ export default class Maginet {
                                             {
                                                 tiedTo: {
                                                     locationId: '0',
-                                                    id: SpecialParameterId.LayerDepth,
+                                                    id: 'moving-x',
                                                 },
                                                 isReference: true,
                                             },
@@ -129,7 +130,7 @@ export default class Maginet {
                                             {
                                                 tiedTo: {
                                                     locationId: '0',
-                                                    id: SpecialParameterId.LayerDepth,
+                                                    id: 'moving-x',
                                                 },
                                                 isReference: true,
                                             },
@@ -218,10 +219,92 @@ export default class Maginet {
         }
     }
 
-    rerender(only?: ComponentInstanceFactory[]) {
-        this.spreadRenderer.renderCurrentSpread(only);
+    traverseMagazine(callback: (instanceOrFactory: ComponentInstanceFactory | ComponentInstance) => boolean | void) {
+        const traverse = (instanceOrFactory: ComponentInstance | ComponentInstanceFactory) => {
+            const res = callback(instanceOrFactory);
+
+            if (res !== true) {
+                const childParameters = (
+                    instanceOrFactory.compositionType === ComponentCompositionType.Factory ?
+                        instanceOrFactory.parameterMapping :
+                        instanceOrFactory.parameterValues
+                )
+                    .asSecondaryKey(instanceOrFactory.component.parameters)
+                    .sFilter(e => e.type === ParameterType.Children);
+
+                for (const parameter of childParameters) {
+                    let isFound = false;
+
+                    for (const child of (parameter.value as ComponentInstanceFactory[])) {
+                        const res = traverse(child);
+
+                        if (res) {
+                            isFound = true;
+                            break;
+                        }
+                    }
+
+                    if (isFound) {
+                        break;
+                    }
+                }
+            } else {
+                return true;
+            }
+        };
+
+        for (const spread of this.magazine.spreads) {
+            const res = callback(spread);
+
+            if (res === true) {
+                break;
+            } else {
+                traverse(spread);
+            }
+        }
+    }
+
+    getLinked(of: (ComponentInstance | ComponentInstanceFactory)[]) {
+        const linked: ComponentInstanceFactory[] = [];
+
+        this.traverseMagazine(
+            (instanceOrFactory) => {
+                if (instanceOrFactory.compositionType === ComponentCompositionType.Factory) {
+                    if (
+                        !of.some(t => t.id === instanceOrFactory.id) &&
+                        instanceOrFactory
+                            .parameterMapping
+                            .some(param =>
+                                param.isReference &&
+                                of.some(t =>
+                                    t.id === param.tiedTo!.locationId ||
+                                    (
+                                        t.compositionType === ComponentCompositionType.Factory &&
+                                        t.parameterMapping.some(compParam =>
+                                            compParam.isReference &&
+                                            compParam.tiedTo!.locationId === param.tiedTo!.locationId &&
+                                            compParam.tiedTo!.id === param.tiedTo!.id,
+                                        )
+                                    ),
+                                ),
+                            )
+                    ) {
+                        linked.push(instanceOrFactory);
+                    }
+                }
+            },
+        );
+
+        return linked;
+    }
+
+    rerender(only?: ComponentInstanceFactory[], andLinked = true) {
+        const linked: ComponentInstanceFactory[] = (only && andLinked) ? this.getLinked(only) : [];
+        const updateList = only ? only.concat(...linked) : undefined;
+
+        this.spreadRenderer.renderCurrentSpread(updateList);
         this.spreadListRenderer.updatePreviews();
-        this.dataRenderer.renderList(only);
+        this.dataRenderer.renderList(updateList);
     }
 
     select(instance: ComponentInstanceFactory[]) {
@@ -261,9 +344,13 @@ export default class Maginet {
 
                     if (rerender === RerenderOption.All) {
                         this.rerender([instanceOrFactory]);
-                    } else if (rerender === RerenderOption.Previews) {
+                    } else if (rerender === RerenderOption.Previews || rerender === RerenderOption.PreviewsAndLinked) {
                         this.spreadRenderer.renderCurrentSpread([instanceOrFactory]);
                         this.spreadListRenderer.updatePreviews();
+
+                        if (rerender === RerenderOption.PreviewsAndLinked) {
+                            this.dataRenderer.renderList(this.getLinked([instanceOrFactory]));
+                        }
                     }
 
                     return;
@@ -283,9 +370,13 @@ export default class Maginet {
 
                     if (rerender === RerenderOption.All) {
                         this.rerender();
-                    } else if (rerender === RerenderOption.Previews) {
+                    } else if (rerender === RerenderOption.Previews || rerender === RerenderOption.PreviewsAndLinked) {
                         this.spreadRenderer.renderCurrentSpread();
                         this.spreadListRenderer.updatePreviews();
+
+                        if (rerender === RerenderOption.PreviewsAndLinked) {
+                            this.dataRenderer.renderList(this.getLinked([instanceOrFactory]));
+                        }
                     }
 
                     return;

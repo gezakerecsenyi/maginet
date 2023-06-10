@@ -241,7 +241,7 @@ export default class DataRenderer {
                     this.maginet.updateInstanceParameter(
                         location,
                         new Size(distance.valueAsNumber, unit.value as SizeUnit),
-                        RerenderOption.Previews,
+                        RerenderOption.PreviewsAndLinked,
                     );
                 };
                 unit.addEventListener('change', () => {
@@ -252,7 +252,7 @@ export default class DataRenderer {
                     this.maginet.updateInstanceParameter(
                         location,
                         currentValue,
-                        RerenderOption.Previews,
+                        RerenderOption.PreviewsAndLinked,
                     );
                 });
                 distance.addEventListener('input', listener);
@@ -278,7 +278,7 @@ export default class DataRenderer {
                 cNode.setAttribute('id', id);
                 cNode.addEventListener('input', () => {
                     const newValue = cNode.innerText;
-                    this.maginet.updateInstanceParameter(location, newValue, RerenderOption.Previews);
+                    this.maginet.updateInstanceParameter(location, newValue, RerenderOption.PreviewsAndLinked);
                 });
 
                 node.replaceChildren(lNode, cNode, rNode);
