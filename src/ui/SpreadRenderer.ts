@@ -104,6 +104,11 @@ export default class SpreadRenderer {
     }
 
     set editMode(value: EditMode) {
+        const root = document.querySelector<HTMLElement>(':root');
+        if (root) {
+            root.style.setProperty('--edit-mode', `var(--${value})`);
+        }
+
         this.parent?.classList.remove(`editing-by-${this.editMode}`);
         this._editMode = value;
         this.parent?.classList.add(`editing-by-${value}`);

@@ -4,10 +4,19 @@ $accent-dark: #131313;
 $almost-black: #0e0e0e;
 $translucent-white: rgba(255, 255, 255, 0.7);
 
+$green: #6aea9d;
 $purple: #b363ff;
-$orange: #e57600;
+$orange: #f3410c;
 
 $border-radius: 3px;
+
+:root {
+  --value: #{$green};
+  --reference: #{$purple};
+  --lock: #{$orange};
+
+  --edit-mode: var(--value);
+}
 
 body {
   display: flex;
@@ -251,6 +260,19 @@ body {
 
         &:not(:last-child) {
           padding-bottom: 10px;
+        }
+
+        button.entry-is-reference {
+          display: inline-block;
+          width: 1rem;
+          height: 1rem;
+          margin-right: 5px;
+          margin-left: calc(-1rem - 5px);
+          cursor: pointer;
+          border: none;
+          border-radius: $border-radius;
+          outline: none;
+          background-color: var(--edit-mode);
         }
 
         .property-label {

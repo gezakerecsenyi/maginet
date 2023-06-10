@@ -72,8 +72,11 @@ export default class DataRenderer {
             ...selectedNodeLocation,
         ].join('.') : '';
 
-        const formatProperties = (list: ComponentInstance[], currentPath: string[] = []): HTMLElement[] => {
-            return list.map(instance => {
+        const formatProperties = (
+            list: [ComponentInstance, ComponentInstanceFactory | null][],
+            currentPath: string[] = [],
+        ): HTMLElement[] => {
+            return list.map(([instance, factory]) => {
                 const elementContainer = document.createElement('li');
                 const elementHere = document.createElement('details');
 
@@ -91,6 +94,13 @@ export default class DataRenderer {
                     id: string,
                 ) => {
                     const entry = document.createElement('li');
+
+                    const parameterMapping = factory?.parameterMapping.getById(id);
+                    if (parameterMapping?.isReference) {
+                        const tiedToButton = document.createElement('button');
+                        tiedToButton.className = 'entry-is-reference';
+                        entry.appendChild(tiedToButton);
+                    }
 
                     let valueLabel: HTMLElement;
                     if (!Object.hasOwn(value as object, 'length')) {
@@ -159,7 +169,10 @@ export default class DataRenderer {
                                 parameter.displayKey,
                                 formatProperties(
                                     (parameter.value as ComponentInstanceFactory[]).map(
-                                        e => e.composeComponentInstance(this.maginet.magazine),
+                                        e => [
+                                            e.composeComponentInstance(this.maginet.magazine),
+                                            e,
+                                        ],
                                     ),
                                     currentPath.concat(instance.id, parameter.id),
                                 ),
@@ -189,7 +202,12 @@ export default class DataRenderer {
 
                     if (container) {
                         container.replaceWith(...formatProperties(
-                            [factory.composeComponentInstance(this.maginet.magazine)],
+                            [
+                                [
+                                    factory.composeComponentInstance(this.maginet.magazine),
+                                    factory,
+                                ],
+                            ],
                             [this.viewingComponent.id].concat(...location).slice(0, -1),
                         ));
                         continue;
@@ -200,7 +218,12 @@ export default class DataRenderer {
                 break;
             }
         } else {
-            list.replaceChildren(...formatProperties([this.viewingComponent]));
+            list.replaceChildren(...formatProperties([
+                [
+                    this.viewingComponent,
+                    null,
+                ],
+            ]));
             this.parent.replaceChildren(list);
             this.ensureFocus(this.focussingOn);
         }
