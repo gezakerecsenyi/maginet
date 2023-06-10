@@ -48,7 +48,7 @@ export default class DataRenderer {
                     const id = pathToHere.join('.') + '::opener';
                     const element = document.getElementById(id);
                     if (element) {
-                        element.setAttribute('open', 'true');
+                        element.setAttribute('open', 'open');
                         if (i === pathToNode.length - 1) {
                             window.location.hash = '';
                             window.location.hash = id;
@@ -59,13 +59,29 @@ export default class DataRenderer {
         }
     }
 
-    renderList() {
+    renderList(only?: ComponentInstanceFactory[]) {
         const list = document.createElement('ol');
+
+        const selectedNodeLocation = this.focussingOn?.locateSelfInComponent(
+            this.maginet.magazine,
+            this.viewingComponent.parameterValues,
+            this.viewingComponent.component,
+        );
+        const pathToSelectedNode = selectedNodeLocation ? [
+            this.viewingComponent.id,
+            ...selectedNodeLocation,
+        ].join('.') : '';
+
         const formatProperties = (list: ComponentInstance[], currentPath: string[] = []): HTMLElement[] => {
             return list.map(instance => {
                 const elementContainer = document.createElement('li');
                 const elementHere = document.createElement('details');
-                elementHere.setAttribute('id', `${currentPath.concat(instance.id).join('.')}::opener`);
+
+                const idStem = currentPath.concat(instance.id).join('.');
+                elementHere.setAttribute('id', `${idStem}::opener`);
+                if (idStem === pathToSelectedNode) {
+                    elementHere.setAttribute('open', 'open');
+                }
 
                 const listHere = document.createElement('ul');
 
@@ -96,8 +112,13 @@ export default class DataRenderer {
                         propertyLabel.innerText = property;
 
                         valueLabel = document.createElement('details');
-                        valueLabel.setAttribute('id', `${currentPath.concat(instance.id, id).join('.')}::opener`);
                         valueLabel.className = 'child-list';
+
+                        const idStem = currentPath.concat(instance.id, id).join('.');
+                        valueLabel.setAttribute('id', `${idStem}::opener`);
+                        if (idStem === pathToSelectedNode) {
+                            valueLabel.setAttribute('open', 'open');
+                        }
 
                         const childList = document.createElement('ol');
                         childList.replaceChildren(...value as HTMLElement[]);
@@ -153,9 +174,36 @@ export default class DataRenderer {
             });
         };
 
-        list.replaceChildren(...formatProperties([this.viewingComponent]));
-        this.parent.replaceChildren(list);
-        this.ensureFocus(this.focussingOn);
+        if (only) {
+            for (const factory of only) {
+                const location = factory.locateSelfInComponent(
+                    this.maginet.magazine,
+                    this.viewingComponent.parameterValues,
+                    this.viewingComponent.component,
+                );
+
+                if (location) {
+                    const container = document.getElementById(
+                        `${[this.viewingComponent.id].concat(...location).join('.')}::opener`,
+                    )?.closest('li');
+
+                    if (container) {
+                        container.replaceWith(...formatProperties(
+                            [factory.composeComponentInstance(this.maginet.magazine)],
+                            [this.viewingComponent.id].concat(...location).slice(0, -1),
+                        ));
+                        continue;
+                    }
+                }
+
+                this.renderList();
+                break;
+            }
+        } else {
+            list.replaceChildren(...formatProperties([this.viewingComponent]));
+            this.parent.replaceChildren(list);
+            this.ensureFocus(this.focussingOn);
+        }
     }
 
     public getEditorFor(
@@ -190,7 +238,7 @@ export default class DataRenderer {
 
                 let currentValue = value as Size;
                 const listener = () => {
-                    this.maginet.updateSpreadParameterFromLocation(
+                    this.maginet.updateInstanceParameter(
                         location,
                         new Size(distance.valueAsNumber, unit.value as SizeUnit),
                         RerenderOption.Previews,
@@ -201,7 +249,7 @@ export default class DataRenderer {
                     currentValue = currentValue.toType(unit.value as SizeUnit);
                     distance.valueAsNumber = currentValue.distance;
 
-                    this.maginet.updateSpreadParameterFromLocation(
+                    this.maginet.updateInstanceParameter(
                         location,
                         currentValue,
                         RerenderOption.Previews,
@@ -230,7 +278,7 @@ export default class DataRenderer {
                 cNode.setAttribute('id', id);
                 cNode.addEventListener('input', () => {
                     const newValue = cNode.innerText;
-                    this.maginet.updateSpreadParameterFromLocation(location, newValue, RerenderOption.Previews);
+                    this.maginet.updateInstanceParameter(location, newValue, RerenderOption.Previews);
                 });
 
                 node.replaceChildren(lNode, cNode, rNode);

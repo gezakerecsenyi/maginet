@@ -107,7 +107,7 @@ export default class ComponentInstanceFactory<R extends Component<ParameterOf<R>
         }
     }
 
-    composeComponentInstance(magazine: Magazine) {
+    composeComponentInstance(magazine: Magazine): ComponentInstance<ParameterOf<R>> {
         return new ComponentInstance<ParameterOf<R>>(this.id, this.component, this.parameterMapping.map(p => {
             const valueHere = p.value ?? (p.resolveValue(
                 magazine,

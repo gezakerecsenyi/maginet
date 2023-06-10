@@ -221,7 +221,7 @@ export default class Maginet {
     rerender(only?: ComponentInstanceFactory[]) {
         this.spreadRenderer.renderCurrentSpread(only);
         this.spreadListRenderer.updatePreviews();
-        this.dataRenderer.renderList();
+        this.dataRenderer.renderList(only);
     }
 
     select(instance: ComponentInstanceFactory[]) {
@@ -250,7 +250,7 @@ export default class Maginet {
         return element;
     }
 
-    updateSpreadParameterFromLocation(location: string[], value: ParameterValueType, rerender = RerenderOption.All) {
+    updateInstanceParameter(location: string[], value: ParameterValueType, rerender = RerenderOption.All) {
         const attemptToTraverse = (
             instanceOrFactory: ComponentInstance | ComponentInstanceFactory,
             location: string[],
