@@ -3,8 +3,8 @@ import Size from '../lib/utils/Size';
 import Maginet from '../Maginet';
 import ComponentInstance from '../render/ComponentInstance';
 import ComponentInstanceFactory from '../render/ComponentInstanceFactory';
-import { ContextEntryType } from '../render/ContextMenuRenderer';
 import { ParameterType, ParameterValueType, RerenderOption, SizeUnit, SpecialClasses } from '../types';
+import { ContextEntryType } from './ContextMenuRenderer';
 
 export default class DataRenderer {
     private parent: HTMLElement;
@@ -14,6 +14,27 @@ export default class DataRenderer {
     constructor(parent: HTMLElement, maginet: Maginet) {
         this.parent = parent;
         this.maginet = maginet;
+    }
+
+    private _selectingLinkFor: ComponentInstanceFactory | null = null;
+
+    get selectingLinkFor() {
+        return this._selectingLinkFor;
+    }
+
+    set selectingLinkFor(value) {
+        this._selectingLinkFor = value;
+
+        Array
+            .from(this.parent.getElementsByClassName(SpecialClasses.ReferenceTarget))
+            .forEach(target => {
+                if (value) {
+                    target.classList.add('ready-for-reference');
+                } else {
+                    target.classList.remove('ready-for-reference');
+                    target.classList.remove(SpecialClasses.ReferenceSource);
+                }
+            });
     }
 
     get viewingComponent(): ComponentInstance<any> {
@@ -96,54 +117,115 @@ export default class DataRenderer {
                 ) => {
                     const entry = document.createElement('li');
 
-                    const parameterMapping = factory?.parameterMapping.getById(id);
-                    if (parameterMapping?.isReference) {
-                        const tiedToButton = document.createElement('button');
-                        tiedToButton.className = 'entry-is-reference';
-                        entry.appendChild(tiedToButton);
+                    const tiedToButton = document.createElement('button');
+                    tiedToButton.className = `${SpecialClasses.ReferenceTarget} dummy`;
+                    entry.appendChild(tiedToButton);
 
-                        tiedToButton.addEventListener('click', (e) => {
+                    tiedToButton.addEventListener('click', (e) => {
+                        if (this.selectingLinkFor) {
                             e.stopPropagation();
+                            e.stopImmediatePropagation();
+                            e.preventDefault();
 
-                            const boundingBox = tiedToButton.getBoundingClientRect();
-                            this.maginet.contextMenuRenderer.summonContextMenu(
-                                boundingBox.left,
-                                boundingBox.bottom,
-                                [
-                                    {
-                                        type: ContextEntryType.Info,
-                                        text: `Tied to ${
-                                            parameterMapping
-                                                .resolveValue(this.maginet.magazine, true, null)[2]
-                                                ?.component
-                                                .displayName ||
-                                            '<unknown>'
-                                        }`,
-                                    },
-                                    {
-                                        type: ContextEntryType.Separator,
-                                    },
-                                    {
-                                        type: ContextEntryType.Button,
-                                        label: 'Detach',
-                                        onClick: () => {
-                                            factory!
-                                                .parameterMapping
-                                                .updateById(
-                                                    id,
-                                                    {
-                                                        value: instance.parameterValues.getById(id)!.value,
-                                                        isReference: false,
-                                                    },
-                                                );
-                                            this.maginet.rerender([factory!]);
+                            this.selectingLinkFor = null;
+                        }
+                    });
 
-                                            return true;
+                    if (factory) {
+                        const parameterMapping = factory?.parameterMapping.getById(id);
+                        tiedToButton.classList.remove('dummy');
+
+                        if (parameterMapping?.isReference) {
+                            tiedToButton.classList.add('entry-is-reference');
+
+                            tiedToButton.addEventListener('click', (e) => {
+                                e.stopPropagation();
+
+                                const parameterSource = parameterMapping.resolveValue(
+                                    this.maginet.magazine,
+                                    true,
+                                    null,
+                                );
+
+                                const boundingBox = tiedToButton.getBoundingClientRect();
+                                this.maginet.contextMenuRenderer.summonContextMenu(
+                                    boundingBox.left,
+                                    boundingBox.bottom,
+                                    [
+                                        {
+                                            type: ContextEntryType.Info,
+                                            text: `Tied to _${
+                                                parameterSource[2]
+                                                    ?.component
+                                                    .parameters
+                                                    .getById(
+                                                        parameterSource[1].slice(-2)[0],
+                                                    )
+                                                    ?.displayKey
+                                                || '<unknown>'
+                                            }_ in _${
+                                                parameterSource[2]
+                                                    ?.component
+                                                    .displayName ||
+                                                '<unknown>'
+                                            }_`,
                                         },
-                                    },
-                                ],
-                            );
-                        });
+                                        {
+                                            type: ContextEntryType.Separator,
+                                        },
+                                        {
+                                            type: ContextEntryType.Button,
+                                            label: 'Detach',
+                                            onClick: () => {
+                                                factory!
+                                                    .parameterMapping
+                                                    .updateById(
+                                                        id,
+                                                        {
+                                                            value: instance.parameterValues.getById(id)!.value,
+                                                            isReference: false,
+                                                        },
+                                                    );
+                                                this.maginet.rerender([factory!]);
+
+                                                return true;
+                                            },
+                                        },
+                                    ],
+                                );
+                            });
+                        } else {
+                            tiedToButton.classList.add('add-entry-reference');
+
+                            tiedToButton.addEventListener('click', (e) => {
+                                e.stopPropagation();
+
+                                const boundingBox = tiedToButton.getBoundingClientRect();
+                                this.maginet.contextMenuRenderer.summonContextMenu(
+                                    boundingBox.left,
+                                    boundingBox.bottom,
+                                    [
+                                        {
+                                            type: ContextEntryType.Info,
+                                            text: `Parameter value`,
+                                        },
+                                        {
+                                            type: ContextEntryType.Separator,
+                                        },
+                                        {
+                                            type: ContextEntryType.Button,
+                                            label: 'Link to value...',
+                                            onClick: () => {
+                                                tiedToButton.classList.add(SpecialClasses.ReferenceSource);
+                                                this.selectingLinkFor = factory;
+
+                                                return true;
+                                            },
+                                        },
+                                    ],
+                                );
+                            });
+                        }
                     }
 
                     let valueLabel: HTMLElement;
@@ -354,7 +436,9 @@ export default class DataRenderer {
             }
             case ParameterType.Color: {
                 const node = document.createElement('span');
-                node.innerText = (value as Color).toCSSString();
+                node.classList.add('color-chip');
+                node.style.backgroundColor = (value as Color).toCSSString();
+
                 return node;
             }
         }

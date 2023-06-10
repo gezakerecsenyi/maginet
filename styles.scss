@@ -67,16 +67,23 @@ body {
         $height: 1.6rem;
         $margin: 10px;
 
-        line-height: 1.6rem;
-        display: block;
-        height: $height;
+        display: flex;
+        align-items: center;
+        min-height: $height;
         padding: $margin;
+
         cursor: default;
         user-select: none;
+        text-align: left;
+        place-content: center;
+
+        p {
+          margin: 0;
+        }
 
         &.button-node, &.checkbox-node {
           width: 100%;
-          height: calc($height + 2 * $margin);
+          min-height: calc($height + 2 * $margin);
           padding: 0;
           cursor: pointer;
 
@@ -89,9 +96,9 @@ body {
           font-family: inherit;
           font-size: 1rem;
           display: inline-block;
-          width: calc(100% - $margin * 2);
 
-          height: $height;
+          width: calc(100% - $margin * 2);
+          min-height: $height;
           margin: $margin;
           padding: 0;
 
@@ -107,6 +114,7 @@ body {
           display: block;
           width: 100%;
           height: 0;
+          min-height: 0;
           padding: 0;
           border-bottom: 1px solid $translucent-white;
         }
@@ -331,7 +339,7 @@ body {
           padding-bottom: 10px;
         }
 
-        button.entry-is-reference {
+        button {
           display: inline-block;
           width: 1rem;
           height: 1rem;
@@ -341,7 +349,37 @@ body {
           border: none;
           border-radius: $border-radius;
           outline: none;
-          background-color: var(--edit-mode);
+          background: none;
+
+          &.dummy {
+            cursor: default;
+          }
+
+          &.entry-is-reference {
+            background-color: var(--edit-mode);
+          }
+
+          &.add-entry-reference {
+            background: none;
+
+            &:hover {
+              border: 2px solid $translucent-white;
+            }
+          }
+
+          &.ready-for-reference {
+            cursor: pointer;
+            border: 2px dashed $translucent-white !important;
+            background: transparent none !important;
+
+            &:hover {
+              border: 2px dashed $purple !important;
+            }
+
+            &.reference-source {
+              border: 2px solid $purple !important;
+            }
+          }
         }
 
         .property-label {
@@ -380,8 +418,22 @@ body {
         }
       }
 
-      details[open] > summary {
-        margin-bottom: 10px;
+      span.color-chip {
+        display: inline-block;
+        width: 60px;
+        height: 1.2rem;
+        margin-bottom: -5px;
+        cursor: pointer;
+        border: 2px solid $translucent-white;
+        border-radius: $border-radius;
+      }
+
+      details {
+        display: inline-block;
+
+        &[open] > summary {
+          margin-bottom: 10px;
+        }
       }
     }
   }

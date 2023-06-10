@@ -1,7 +1,7 @@
-import Component from '../render/Component';
-import { ParameterType, SpecialParameterId } from '../types';
-import { Color } from './utils/Color';
-import Size from './utils/Size';
+import Component from '../../render/Component';
+import { ParameterType, SpecialParameterId } from '../../types';
+import { Color } from '../utils/Color';
+import Size from '../utils/Size';
 
 export const TextSpan = new Component<'text' | 'color' | 'fontSize' | SpecialParameterId>(
     [

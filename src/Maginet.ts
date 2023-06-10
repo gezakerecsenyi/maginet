@@ -1,10 +1,9 @@
 import cloneDeep from 'lodash/cloneDeep';
-import { Spread } from './lib/Spread';
-import { TextSpan } from './lib/TextSpan';
+import { Spread } from './lib/components/Spread';
+import { TextSpan } from './lib/components/TextSpan';
 import Size from './lib/utils/Size';
 import ComponentInstance from './render/ComponentInstance';
 import ComponentInstanceFactory from './render/ComponentInstanceFactory';
-import { ContextMenuRenderer } from './render/ContextMenuRenderer';
 import { ParameterCalculator } from './render/ParameterCalculator';
 import {
     ComponentCompositionType,
@@ -18,6 +17,7 @@ import {
     SpecialParameterId,
     ToolType,
 } from './types';
+import { ContextMenuRenderer } from './ui/ContextMenuRenderer';
 import DataRenderer from './ui/DataRenderer';
 import SpreadListRenderer from './ui/SpreadListRenderer';
 import SpreadRenderer from './ui/SpreadRenderer';
@@ -75,7 +75,8 @@ export default class Maginet {
                                                     locationId: '0',
                                                     id: 'moving-x',
                                                 },
-                                                isReference: true,
+                                                value: new Size(100, SizeUnit.MM),
+                                                isReference: false,
                                             },
                                         ),
                                         new ParameterCalculator(
@@ -105,7 +106,8 @@ export default class Maginet {
                                                     locationId: '0',
                                                     id: 'moving-x',
                                                 },
-                                                isReference: true,
+                                                value: new Size(100, SizeUnit.MM),
+                                                isReference: false,
                                             },
                                         ),
                                         new ParameterCalculator(
@@ -135,7 +137,8 @@ export default class Maginet {
                                                     locationId: '0',
                                                     id: 'moving-x',
                                                 },
-                                                isReference: true,
+                                                value: new Size(100, SizeUnit.MM),
+                                                isReference: false,
                                             },
                                         ),
                                         new ParameterCalculator(

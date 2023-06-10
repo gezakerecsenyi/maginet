@@ -1,7 +1,7 @@
-import Component from '../render/Component';
-import { ParameterType, SizeUnit, SpecialParameterId } from '../types';
-import renderAsBlock from './utils/renderAsBlock';
-import Size from './utils/Size';
+import Component from '../../render/Component';
+import { ParameterType, SizeUnit, SpecialParameterId } from '../../types';
+import renderAsBlock from '../utils/renderAsBlock';
+import Size from '../utils/Size';
 
 export const Spread = new Component<'moving-x'>(
     [

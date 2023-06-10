@@ -17,11 +17,6 @@ import Component from './Component';
 import ComponentInstance from './ComponentInstance';
 import { ParameterCalculator } from './ParameterCalculator';
 
-export interface ParameterAssociationDescriptor {
-    locationId: string;
-    id: SpecialParameterId | string;
-}
-
 export type ParameterOf<R> = (R extends Component<infer U> ? U : never) | SpecialParameterId;
 export type ParameterCalculatorMap<R extends Component<ParameterOf<R>>> = SearchableMap<ParameterOf<R>, ParameterCalculator<ParameterOf<R>>>;
 
@@ -97,6 +92,7 @@ export default class ComponentInstanceFactory<R extends Component<ParameterOf<R>
                 }
             } else if (maginet.spreadRenderer.editMode === EditMode.Reference) {
                 if (resolvedValueLocation.length) {
+                    //todo: this doesn't invert node-calculators
                     updateFromLocation(
                         maginet.magazine,
                         resolvedValueLocation,

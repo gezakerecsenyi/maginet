@@ -1,5 +1,5 @@
 import { ToolbarOptionData, ToolType } from '../../types';
-import { TextSpan } from '../TextSpan';
+import { TextSpan } from '../components/TextSpan';
 
 export const toolbarOptionList: ToolbarOptionData[] = [
     {

@@ -110,6 +110,8 @@ export enum SpecialClasses {
     GeneratedBlock = 'generated-rendered-block',
     SelectionBoxComponent = 'selection-box-component',
     TopLevelSpread = '-top-level-spread',
+    ReferenceTarget = 'reference-target',
+    ReferenceSource = 'reference-source',
 }
 
 export enum ToolType {
@@ -149,4 +151,9 @@ export interface ToolbarOptionData {
 export type UIBindingSpec<T extends string> = {
     width: (T | SpecialParameterId)[];
     height: (T | SpecialParameterId)[];
+}
+
+export interface ParameterAssociationDescriptor {
+    locationId: string;
+    id: SpecialParameterId | string;
 }

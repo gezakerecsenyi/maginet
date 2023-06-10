@@ -1,11 +1,13 @@
-import { Magazine, ParameterValueType } from '../types';
+import ParameterRelationshipEvaluator from '../nodes/ParameterRelationshipEvaluator';
+import { Magazine, ParameterAssociationDescriptor, ParameterValueType } from '../types';
 import ComponentInstance from './ComponentInstance';
-import ComponentInstanceFactory, { ParameterAssociationDescriptor } from './ComponentInstanceFactory';
+import ComponentInstanceFactory from './ComponentInstanceFactory';
 
 export interface ParameterCalculatorData {
     isReference: boolean;
     value?: ParameterValueType;
     tiedTo?: ParameterAssociationDescriptor;
+    relationshipEvaluator?: ParameterRelationshipEvaluator;
 }
 
 export class ParameterCalculator<T extends string> {
@@ -13,12 +15,14 @@ export class ParameterCalculator<T extends string> {
     isReference: boolean;
     tiedTo?: ParameterAssociationDescriptor;
     value?: ParameterValueType;
+    relationshipEvaluator?: ParameterRelationshipEvaluator;
 
     constructor(id: T, data: ParameterCalculatorData) {
         this.id = id;
         this.isReference = data.isReference;
         this.tiedTo = data.tiedTo;
         this.value = data.value;
+        this.relationshipEvaluator = data.relationshipEvaluator;
     }
 
     resolveValue<Q extends boolean>(
@@ -45,7 +49,7 @@ export class ParameterCalculator<T extends string> {
                         .getById(this.tiedTo.id);
                     if (res) {
                         return [
-                            res.value,
+                            this.relationshipEvaluator!.evaluate(res.value),
                             [
                                 'spreads',
                                 t.id,
@@ -79,7 +83,13 @@ export class ParameterCalculator<T extends string> {
                         ],
                     );
 
-                    if (lookupHere[0] !== null) return lookupHere;
+                    if (lookupHere[0] !== null) {
+                        return [
+                            this.relationshipEvaluator!.evaluate(lookupHere[0]),
+                            lookupHere[1],
+                            lookupHere[2],
+                        ];
+                    }
                 }
             }
 
@@ -104,7 +114,13 @@ export class ParameterCalculator<T extends string> {
                                 'value',
                             ],
                         );
-                        if (childLookup[0] !== null) return childLookup;
+                        if (childLookup[0] !== null) {
+                            return [
+                                this.relationshipEvaluator!.evaluate(childLookup[0]),
+                                childLookup[1],
+                                childLookup[2],
+                            ];
+                        }
                     }
                 }
             }
@@ -120,14 +136,22 @@ export class ParameterCalculator<T extends string> {
                     if (res) {
                         if (res.isReference) {
                             // we've found it!... but it's behind another reference
-                            return res.resolveValue(
+                            const foundBehind = res.resolveValue(
                                 magazine,
                                 true,
                                 null,
                             );
+
+                            if (foundBehind[0]) {
+                                return [
+                                    this.relationshipEvaluator!.evaluate(foundBehind[0]),
+                                    foundBehind[1],
+                                    foundBehind[2],
+                                ];
+                            }
                         } else {
                             return [
-                                res.value!,
+                                this.relationshipEvaluator!.evaluate(res.value!),
                                 foundAt.concat(t.id, 'parameterMapping', this.tiedTo!.id, 'value'),
                                 item,
                             ];
@@ -159,7 +183,13 @@ export class ParameterCalculator<T extends string> {
                                     resLookup[0] as ComponentInstanceFactory[],
                                     resLookup[1],
                                 );
-                                if (childLookup[0] !== null) return childLookup;
+                                if (childLookup[0] !== null) {
+                                    return [
+                                        this.relationshipEvaluator!.evaluate(childLookup[0]),
+                                        childLookup[1],
+                                        childLookup[2],
+                                    ];
+                                }
                             }
                         } else {
                             const childLookup = this.resolveValue(
@@ -168,7 +198,13 @@ export class ParameterCalculator<T extends string> {
                                 childList.value as ComponentInstanceFactory[],
                                 foundAt.concat(t.id, 'parameterMapping', childList.id),
                             );
-                            if (childLookup[0] !== null) return childLookup;
+                            if (childLookup[0] !== null) {
+                                return [
+                                    this.relationshipEvaluator!.evaluate(childLookup[0]),
+                                    childLookup[1],
+                                    childLookup[2],
+                                ];
+                            }
                         }
                     }
                 }

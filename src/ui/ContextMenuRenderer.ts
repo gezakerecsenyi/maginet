@@ -1,3 +1,4 @@
+import { marked } from 'marked';
 import Maginet from '../Maginet';
 
 export enum ContextEntryType {
@@ -79,7 +80,7 @@ export class ContextMenuRenderer {
                 switch (entry.type) {
                     case ContextEntryType.Info:
                         nodeHere.className = 'info-node';
-                        nodeHere.innerText = entry.text;
+                        nodeHere.innerHTML = marked.parse(entry.text);
                         break;
                     case ContextEntryType.Separator:
                         nodeHere.className = 'separator';
@@ -87,7 +88,7 @@ export class ContextMenuRenderer {
                     case ContextEntryType.Button:
                         nodeHere.className = 'button-node';
                         const buttonHere = document.createElement('button');
-                        buttonHere.innerText = entry.label;
+                        buttonHere.innerHTML = marked.parse(entry.label);
                         buttonHere.addEventListener('click', () => {
                             const res = entry.onClick();
                             if (res) {
@@ -100,7 +101,7 @@ export class ContextMenuRenderer {
                     case ContextEntryType.Checkbox:
                         nodeHere.className = 'checkbox-node';
                         const label = document.createElement('label');
-                        label.innerText = entry.label;
+                        label.innerHTML = marked.parse(entry.label);
 
                         const checkboxHere = document.createElement('input');
                         checkboxHere.type = 'checkbox';
