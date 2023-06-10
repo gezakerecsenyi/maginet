@@ -3,6 +3,7 @@ import Size from '../lib/utils/Size';
 import Maginet from '../Maginet';
 import ComponentInstance from '../render/ComponentInstance';
 import ComponentInstanceFactory from '../render/ComponentInstanceFactory';
+import { ContextEntryType } from '../render/ContextMenuRenderer';
 import { ParameterType, ParameterValueType, RerenderOption, SizeUnit, SpecialClasses } from '../types';
 
 export default class DataRenderer {
@@ -100,6 +101,49 @@ export default class DataRenderer {
                         const tiedToButton = document.createElement('button');
                         tiedToButton.className = 'entry-is-reference';
                         entry.appendChild(tiedToButton);
+
+                        tiedToButton.addEventListener('click', (e) => {
+                            e.stopPropagation();
+
+                            const boundingBox = tiedToButton.getBoundingClientRect();
+                            this.maginet.contextMenuRenderer.summonContextMenu(
+                                boundingBox.left,
+                                boundingBox.bottom,
+                                [
+                                    {
+                                        type: ContextEntryType.Info,
+                                        text: `Tied to ${
+                                            parameterMapping
+                                                .resolveValue(this.maginet.magazine, true, null)[2]
+                                                ?.component
+                                                .displayName ||
+                                            '<unknown>'
+                                        }`,
+                                    },
+                                    {
+                                        type: ContextEntryType.Separator,
+                                    },
+                                    {
+                                        type: ContextEntryType.Button,
+                                        label: 'Detach',
+                                        onClick: () => {
+                                            factory!
+                                                .parameterMapping
+                                                .updateById(
+                                                    id,
+                                                    {
+                                                        value: instance.parameterValues.getById(id)!.value,
+                                                        isReference: false,
+                                                    },
+                                                );
+                                            this.maginet.rerender([factory!]);
+
+                                            return true;
+                                        },
+                                    },
+                                ],
+                            );
+                        });
                     }
 
                     let valueLabel: HTMLElement;

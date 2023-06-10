@@ -4,6 +4,7 @@ import { TextSpan } from './lib/TextSpan';
 import Size from './lib/utils/Size';
 import ComponentInstance from './render/ComponentInstance';
 import ComponentInstanceFactory from './render/ComponentInstanceFactory';
+import { ContextMenuRenderer } from './render/ContextMenuRenderer';
 import { ParameterCalculator } from './render/ParameterCalculator';
 import {
     ComponentCompositionType,
@@ -26,6 +27,7 @@ export default class Maginet {
     public magazine: Magazine;
     public spreadRenderer: SpreadRenderer;
     public spreadListRenderer: SpreadListRenderer;
+    public contextMenuRenderer: ContextMenuRenderer;
     public dataRenderer: DataRenderer;
     public pxInMM: number;
     public pxInPT: number;
@@ -38,6 +40,7 @@ export default class Maginet {
         mmRuler: HTMLElement,
         ptRuler: HTMLElement,
     ) {
+        this.contextMenuRenderer = new ContextMenuRenderer(this);
         this.spreadRenderer = new SpreadRenderer(previewContainer, this);
         this.spreadListRenderer = new SpreadListRenderer(spreadListContainer, this);
 

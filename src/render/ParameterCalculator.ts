@@ -26,11 +26,12 @@ export class ParameterCalculator<T extends string> {
         isTopLevel: Q,
         searchSpace: Q extends true ? null : ComponentInstanceFactory[],
         foundAt: string[] = [],
-    ): [ParameterValueType | null, string[]] {
+    ): [ParameterValueType | null, string[], ComponentInstanceFactory | ComponentInstance | null] {
         if (!this.tiedTo || !this.isReference) {
             return [
                 this.value!,
                 foundAt.concat(this.id, 'value'),
+                null,
             ];
         }
 
@@ -52,6 +53,7 @@ export class ParameterCalculator<T extends string> {
                                 this.tiedTo!.id,
                                 'value',
                             ],
+                            spread,
                         ];
                     }
                 }
@@ -127,6 +129,7 @@ export class ParameterCalculator<T extends string> {
                             return [
                                 res.value!,
                                 foundAt.concat(t.id, 'parameterMapping', this.tiedTo!.id, 'value'),
+                                item,
                             ];
                         }
                     }
@@ -175,6 +178,7 @@ export class ParameterCalculator<T extends string> {
         return [
             null,
             [],
+            null,
         ];
     }
 }
