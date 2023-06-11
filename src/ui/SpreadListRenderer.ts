@@ -1,5 +1,5 @@
 import Maginet from '../Maginet';
-import Renderer from '../render/Renderer';
+import RenderContext from '../render/RenderContext';
 
 export default class SpreadListRenderer {
     private container: HTMLElement;
@@ -28,7 +28,7 @@ export default class SpreadListRenderer {
                     preview.className = 'spread-preview';
                     preview.style.left = `${totalWidth * (1 - scaleFactor) / 2}px`;
                     preview.style.top = `${totalWidth * (297 / 420) * (1 - scaleFactor) / 2}px`;
-                    const previewContents = spread.render(new Renderer(this.maginet, false));
+                    const previewContents = spread.render(new RenderContext(this.maginet, false));
                     previewContents.style.transform = transformFactor;
                     preview.replaceChildren(previewContents);
 

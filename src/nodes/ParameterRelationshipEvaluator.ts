@@ -12,13 +12,17 @@ export default class ParameterRelationshipEvaluator {
     outputType: ParameterTyping;
     inputType: ParameterTyping;
 
-    constructor(inputType: ParameterTyping, outputType: ParameterTyping) {
+    constructor(
+        inputType: ParameterTyping,
+        outputType: ParameterTyping,
+        nodes?: SearchableMap<string, NodeInstance<any, any>>,
+    ) {
         this.inputType = inputType;
         this.outputType = outputType;
 
-        this.nodes = new SearchableMap<string, NodeInstance<any, any>>(
+        this.nodes = nodes || new SearchableMap<string, NodeInstance<any, any>>(
             new NodeInstance(
-                SpecialNodeIds.Output,
+                SpecialNodeIds.Input,
                 new Node<string, 'value'>(
                     SpecialNodeIds.Output,
                     'Input',
@@ -34,6 +38,8 @@ export default class ParameterRelationshipEvaluator {
                     () => [],
                 ),
                 [],
+                0,
+                0,
             ),
             new NodeInstance(
                 SpecialNodeIds.Output,
@@ -52,6 +58,8 @@ export default class ParameterRelationshipEvaluator {
                     () => [],
                 ),
                 [],
+                100,
+                0,
             ),
         );
     }
@@ -98,6 +106,7 @@ export default class ParameterRelationshipEvaluator {
     evaluateBackwards(
         output: ParameterValueDatum,
         saverStore: NodeEvaluationCache = {},
+        ignoreIllegal: boolean = false,
     ): ParameterValueDatum | null {
         const inputNode = this.nodes.getById(SpecialNodeIds.Input)!;
 
@@ -188,7 +197,7 @@ export default class ParameterRelationshipEvaluator {
                     value: t.value!,
                 }));
 
-            const res = node.node.evaluateBackwards(sources, knownInputs);
+            const res = node.node.evaluateBackwards(sources, knownInputs, ignoreIllegal);
             if (res !== null) {
                 const value = new SearchableMap(...res);
                 evaluatedNodes[node.id] = value;

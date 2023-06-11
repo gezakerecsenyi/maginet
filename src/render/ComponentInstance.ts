@@ -5,7 +5,7 @@ import { ComponentCompositionType, ParameterValue, SpecialParameterId } from '..
 import { PopulatedWindow } from '../window';
 import Component from './Component';
 import ComponentInstanceFactory from './ComponentInstanceFactory';
-import Renderer from './Renderer';
+import RenderContext from './RenderContext';
 
 export default class ComponentInstance<T extends string = string> {
     public component: Component<T>;
@@ -71,7 +71,7 @@ export default class ComponentInstance<T extends string = string> {
         return child;
     }
 
-    render(renderer: Renderer): HTMLElement {
+    render(renderer: RenderContext): HTMLElement {
         return this.component.render(this.parameterValues, this.fromFactory, renderer);
     }
 }

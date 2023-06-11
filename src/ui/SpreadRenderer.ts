@@ -4,7 +4,7 @@ import Size from '../lib/utils/Size';
 import Maginet from '../Maginet';
 import ComponentInstanceFactory from '../render/ComponentInstanceFactory';
 import { ParameterCalculator } from '../render/ParameterCalculator';
-import Renderer from '../render/Renderer';
+import RenderContext from '../render/RenderContext';
 import { SizeUnit, SpecialClasses, SpecialParameterId, ToolType } from '../types';
 import ToolbarRenderer from './ToolbarRenderer';
 
@@ -577,7 +577,7 @@ export default class SpreadRenderer {
             this.parent.replaceChildren(this.container);
         }
 
-        const renderedSpread = this.currentSpread.render(new Renderer(this.maginet));
+        const renderedSpread = this.currentSpread.render(new RenderContext(this.maginet));
         renderedSpread.classList.add(SpecialClasses.TopLevelSpread);
 
         this.topLevelInstances = this

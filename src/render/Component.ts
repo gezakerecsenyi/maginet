@@ -15,7 +15,7 @@ import {
 import { PopulatedWindow } from '../window';
 import ComponentInstanceFactory from './ComponentInstanceFactory';
 import { ParameterCalculator } from './ParameterCalculator';
-import Renderer from './Renderer';
+import RenderContext from './RenderContext';
 
 export default class Component<T extends string = string> {
     public parameters: SearchableMap<T | SpecialParameterId, ParametersFrom<T>>;
@@ -130,7 +130,7 @@ export default class Component<T extends string = string> {
     render(
         parameterValues: SearchableMap<T | SpecialParameterId, ParameterValue<T>>,
         srcInstance: ComponentInstanceFactory<Component<T | SpecialParameterId>> | null,
-        renderer: Renderer,
+        renderer: RenderContext,
     ) {
         let renderRes!: HTMLElement;
         try {

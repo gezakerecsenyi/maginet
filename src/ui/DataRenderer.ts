@@ -1,15 +1,19 @@
 import { Color } from '../lib/utils/Color';
 import Size from '../lib/utils/Size';
 import Maginet from '../Maginet';
+import ParameterRelationshipEvaluator from '../nodes/ParameterRelationshipEvaluator';
 import ComponentInstance from '../render/ComponentInstance';
 import ComponentInstanceFactory from '../render/ComponentInstanceFactory';
 import { ParameterTyping, ParameterValueDatum, RerenderOption, SizeUnit, SpecialClasses } from '../types';
 import { ContextEntryType } from './ContextMenuRenderer';
+import ModalRenderer from './ModalRenderer';
+import NodeRenderer from './NodeRenderer';
 
 export default class DataRenderer {
     private parent: HTMLElement;
     private maginet: Maginet;
     private focussingOn: ComponentInstanceFactory | null = null;
+    private selectingLinkForParameter: string | null = null;
 
     constructor(parent: HTMLElement, maginet: Maginet) {
         this.parent = parent;
@@ -24,6 +28,10 @@ export default class DataRenderer {
 
     set selectingLinkFor(value) {
         this._selectingLinkFor = value;
+
+        if (!value) {
+            this.selectingLinkForParameter = null;
+        }
 
         Array
             .from(this.parent.getElementsByClassName(SpecialClasses.ReferenceTarget))
@@ -122,17 +130,26 @@ export default class DataRenderer {
                     entry.appendChild(tiedToButton);
 
                     tiedToButton.addEventListener('click', (e) => {
-                        if (this.selectingLinkFor) {
+                        if (this.selectingLinkFor && this.selectingLinkForParameter && factory) {
                             e.stopPropagation();
                             e.stopImmediatePropagation();
                             e.preventDefault();
+
+                            const nodeEditorContainer = document.createElement('div');
+
+                            const evaluator = new ParameterRelationshipEvaluator(
+                                factory.component.parameters.getById(id)!.type,
+                                this.selectingLinkFor.component.parameters.getById(this.selectingLinkForParameter)!.type,
+                            );
+                            const nodeEditor = new NodeRenderer(nodeEditorContainer, evaluator);
+                            const modal = new ModalRenderer(nodeEditorContainer);
 
                             this.selectingLinkFor = null;
                         }
                     });
 
                     if (factory) {
-                        const parameterMapping = factory?.parameterMapping.getById(id);
+                        const parameterMapping = factory.parameterMapping.getById(id);
                         tiedToButton.classList.remove('dummy');
 
                         if (parameterMapping?.isReference) {
@@ -218,6 +235,7 @@ export default class DataRenderer {
                                             onClick: () => {
                                                 tiedToButton.classList.add(SpecialClasses.ReferenceSource);
                                                 this.selectingLinkFor = factory;
+                                                this.selectingLinkForParameter = id;
 
                                                 return true;
                                             },

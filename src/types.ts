@@ -5,7 +5,7 @@ import StringFragment from './lib/utils/StringFragment';
 import Component from './render/Component';
 import ComponentInstance from './render/ComponentInstance';
 import ComponentInstanceFactory from './render/ComponentInstanceFactory';
-import Renderer from './render/Renderer';
+import RenderContext from './render/RenderContext';
 
 export interface Magazine {
     spreads: ComponentInstance<any>[];
@@ -103,7 +103,7 @@ export type ParameterValueDatum =
     | Angle
     | ComponentInstanceFactory<any>[]
     | boolean;
-export type NodeValueDatum = Exclude<ParameterValueDatum, string> | StringFragment | null;
+export type NodeValueDatum = ParameterValueDatum | StringFragment | null;
 
 export interface ParameterValue<T extends string = string> {
     id: T | SpecialParameterId;
@@ -123,6 +123,7 @@ export enum SpecialClasses {
     TopLevelSpread = '-top-level-spread',
     ReferenceTarget = 'reference-target',
     ReferenceSource = 'reference-source',
+    NodeEditor = 'node-editor',
 }
 
 export enum ToolType {
@@ -143,7 +144,7 @@ export enum ToolType {
 
 export type RenderMethod<T extends string> = (
     parameterValue: SearchableMap<T | SpecialParameterId, ParameterValue<T>>,
-    renderer: Renderer,
+    renderer: RenderContext,
 ) => HTMLElement;
 
 export interface ParametersFrom<T extends string> extends Omit<Parameter, 'id'> {

@@ -1,6 +1,6 @@
 import Maginet from '../Maginet';
 
-export default class Renderer {
+export default class RenderContext {
     public maginet: Maginet;
     public interactable: boolean;
 

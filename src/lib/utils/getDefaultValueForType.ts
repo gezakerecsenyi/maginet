@@ -1,16 +1,28 @@
-import { AngleUnit, ColorType, ParameterTyping, ParameterValueDatum, SizeUnit } from '../../types';
+import { DropdownTyping } from '../../nodes/nodeTypes';
+import { AngleUnit, ColorType, NodeValueDatum, ParameterTyping, ParameterValueDatum, SizeUnit } from '../../types';
 import { Color } from './Color';
 import Size from './Size';
+import StringFragment from './StringFragment';
 
-export default function getDefaultValueForType(type: ParameterTyping): ParameterValueDatum {
+export default function getDefaultValueForType<T extends boolean = false>(
+    type: T extends true ? (ParameterTyping | DropdownTyping) : ParameterTyping,
+    useNodeTypes?: T,
+): T extends true ? NodeValueDatum : ParameterValueDatum {
     switch (type) {
+        case DropdownTyping.Dropdown:
+            return 0;
         case ParameterTyping.Angle:
             return {
                 angleSize: 90,
                 unit: AngleUnit.Degrees,
             };
         case ParameterTyping.String:
-            return 'Lorem ipsum dolor sit amet';
+            const defaultString = 'Lorem ipsum dolor sit amet';
+            if (useNodeTypes) {
+                return StringFragment.fromString(defaultString) as T extends true ? NodeValueDatum : ParameterValueDatum;
+            }
+
+            return defaultString as T extends true ? NodeValueDatum : ParameterValueDatum;
         case ParameterTyping.Number:
             return 1;
         case ParameterTyping.Size:
@@ -32,5 +44,7 @@ export default function getDefaultValueForType(type: ParameterTyping): Parameter
             });
         case ParameterTyping.Font:
             return 'Arial';
+        default:
+            return false;
     }
 }

@@ -1,10 +1,10 @@
 import ComponentInstanceFactory from '../../render/ComponentInstanceFactory';
-import Renderer from '../../render/Renderer';
+import RenderContext from '../../render/RenderContext';
 import { ParameterValue, SpecialClasses, SpecialParameterId } from '../../types';
 import Size from './Size';
 
 export default function renderAsBlock(width?: Size, height?: Size, htmlClassName?: string) {
-    return (dataHere: ParameterValue[], renderer: Renderer): HTMLElement => {
+    return (dataHere: ParameterValue[], renderer: RenderContext): HTMLElement => {
         const element = document.createElement('div');
         element.style.position = 'relative';
         element.className = `${SpecialClasses.GeneratedBlock} ${htmlClassName || ''}`;
