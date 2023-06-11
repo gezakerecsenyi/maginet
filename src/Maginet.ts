@@ -9,8 +9,8 @@ import {
     ComponentCompositionType,
     HistoryState,
     Magazine,
-    ParameterType,
-    ParameterValueType,
+    ParameterTyping,
+    ParameterValueDatum,
     RerenderOption,
     SizeUnit,
     SpecialClasses,
@@ -236,7 +236,7 @@ export default class Maginet {
                         instanceOrFactory.parameterValues
                 )
                     .asSecondaryKey(instanceOrFactory.component.parameters)
-                    .sFilter(e => e.type === ParameterType.Children);
+                    .sFilter(e => e.type === ParameterTyping.Children);
 
                 for (const parameter of childParameters) {
                     let isFound = false;
@@ -339,7 +339,7 @@ export default class Maginet {
         return element;
     }
 
-    updateInstanceParameter(location: string[], value: ParameterValueType, rerender = RerenderOption.All) {
+    updateInstanceParameter(location: string[], value: ParameterValueDatum, rerender = RerenderOption.All) {
         const attemptToTraverse = (
             instanceOrFactory: ComponentInstance | ComponentInstanceFactory,
             location: string[],

@@ -3,7 +3,7 @@ import Size from '../lib/utils/Size';
 import Maginet from '../Maginet';
 import ComponentInstance from '../render/ComponentInstance';
 import ComponentInstanceFactory from '../render/ComponentInstanceFactory';
-import { ParameterType, ParameterValueType, RerenderOption, SizeUnit, SpecialClasses } from '../types';
+import { ParameterTyping, ParameterValueDatum, RerenderOption, SizeUnit, SpecialClasses } from '../types';
 import { ContextEntryType } from './ContextMenuRenderer';
 
 export default class DataRenderer {
@@ -280,7 +280,7 @@ export default class DataRenderer {
                     .parameterValues
                     .asSecondaryKey(instance.component.parameters)
                     .forEach(parameter => {
-                        if (parameter.type !== ParameterType.Children) {
+                        if (parameter.type !== ParameterTyping.Children) {
                             addPropertyEntry(
                                 parameter.displayKey,
                                 this.getEditorFor(
@@ -356,12 +356,12 @@ export default class DataRenderer {
     }
 
     public getEditorFor(
-        value: ParameterValueType,
-        type: ParameterType,
+        value: ParameterValueDatum,
+        type: ParameterTyping,
         location: string[],
     ): HTMLElement {
         switch (type) {
-            case ParameterType.Size: {
+            case ParameterTyping.Size: {
                 const node = document.createElement('span');
                 node.className = 'size-editor';
 
@@ -410,7 +410,7 @@ export default class DataRenderer {
 
                 return node;
             }
-            case ParameterType.String: {
+            case ParameterTyping.String: {
                 const node = document.createElement('span');
 
                 const lNode = document.createElement('span');
@@ -434,7 +434,7 @@ export default class DataRenderer {
 
                 return node;
             }
-            case ParameterType.Color: {
+            case ParameterTyping.Color: {
                 const node = document.createElement('span');
                 node.classList.add('color-chip');
                 node.style.backgroundColor = (value as Color).toCSSString();

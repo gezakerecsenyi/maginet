@@ -1,5 +1,5 @@
 import Component from '../../render/Component';
-import { ParameterType, SpecialParameterId } from '../../types';
+import { ParameterTyping, SpecialParameterId } from '../../types';
 import { Color } from '../utils/Color';
 import Size from '../utils/Size';
 
@@ -8,17 +8,17 @@ export const TextSpan = new Component<'text' | 'color' | 'fontSize' | SpecialPar
         {
             id: 'text',
             displayKey: 'Text content',
-            type: ParameterType.String,
+            type: ParameterTyping.String,
         },
         {
             id: 'fontSize',
             displayKey: 'Font size',
-            type: ParameterType.Size,
+            type: ParameterTyping.Size,
         },
         {
             id: 'color',
             displayKey: 'Text color',
-            type: ParameterType.Color,
+            type: ParameterTyping.Color,
         },
     ],
     false,

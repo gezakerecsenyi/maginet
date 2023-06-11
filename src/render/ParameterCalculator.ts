@@ -1,11 +1,11 @@
 import ParameterRelationshipEvaluator from '../nodes/ParameterRelationshipEvaluator';
-import { Magazine, ParameterAssociationDescriptor, ParameterValueType } from '../types';
+import { Magazine, ParameterAssociationDescriptor, ParameterValueDatum } from '../types';
 import ComponentInstance from './ComponentInstance';
 import ComponentInstanceFactory from './ComponentInstanceFactory';
 
 export interface ParameterCalculatorData {
     isReference: boolean;
-    value?: ParameterValueType;
+    value?: ParameterValueDatum;
     tiedTo?: ParameterAssociationDescriptor;
     relationshipEvaluator?: ParameterRelationshipEvaluator;
 }
@@ -14,7 +14,7 @@ export class ParameterCalculator<T extends string> {
     id: T;
     isReference: boolean;
     tiedTo?: ParameterAssociationDescriptor;
-    value?: ParameterValueType;
+    value?: ParameterValueDatum;
     relationshipEvaluator?: ParameterRelationshipEvaluator;
 
     constructor(id: T, data: ParameterCalculatorData) {
@@ -30,7 +30,7 @@ export class ParameterCalculator<T extends string> {
         isTopLevel: Q,
         searchSpace: Q extends true ? null : ComponentInstanceFactory[],
         foundAt: string[] = [],
-    ): [ParameterValueType | null, string[], ComponentInstanceFactory | ComponentInstance | null] {
+    ): [ParameterValueDatum | null, string[], ComponentInstanceFactory | ComponentInstance | null] {
         if (!this.tiedTo || !this.isReference) {
             return [
                 this.value!,

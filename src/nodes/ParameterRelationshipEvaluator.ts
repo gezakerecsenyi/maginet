@@ -1,24 +1,26 @@
 import SearchableMap from '../lib/utils/SearchableMap';
+import StringFragment from '../lib/utils/StringFragment';
 import toSentenceCase from '../lib/utils/toSentenceCase';
-import { ParameterType, ParameterValueType } from '../types';
+import ComponentInstanceFactory from '../render/ComponentInstanceFactory';
+import { NodeValueDatum, ParameterTyping, ParameterValueDatum } from '../types';
 import Node from './Node';
 import NodeInstance from './NodeInstance';
-import { NodeIO } from './nodeTypes';
+import { NodeEvaluationCache, NodeIO, NodeIOValue, SpecialNodeIds } from './nodeTypes';
 
 export default class ParameterRelationshipEvaluator {
     nodes: SearchableMap<string, NodeInstance<any, any>>;
-    outputType: ParameterType;
-    inputType: ParameterType;
+    outputType: ParameterTyping;
+    inputType: ParameterTyping;
 
-    constructor(inputType: ParameterType, outputType: ParameterType) {
+    constructor(inputType: ParameterTyping, outputType: ParameterTyping) {
         this.inputType = inputType;
         this.outputType = outputType;
 
         this.nodes = new SearchableMap<string, NodeInstance<any, any>>(
             new NodeInstance(
-                'input',
+                SpecialNodeIds.Output,
                 new Node<string, 'value'>(
-                    'input',
+                    SpecialNodeIds.Output,
                     'Input',
                     [],
                     [
@@ -34,9 +36,9 @@ export default class ParameterRelationshipEvaluator {
                 [],
             ),
             new NodeInstance(
-                'output',
+                SpecialNodeIds.Output,
                 new Node<'value', string>(
-                    'output',
+                    SpecialNodeIds.Output,
                     'Output',
                     [
                         {
@@ -54,21 +56,174 @@ export default class ParameterRelationshipEvaluator {
         );
     }
 
-    evaluate(source: ParameterValueType, isForwards: boolean = true): ParameterValueType {
-        const exitNode = this.nodes.getById(isForwards ? 'output' : 'input')!;
+    static toNodeValue(value: ParameterValueDatum, typeHint: ParameterTyping): NodeIOValue {
+        if (typeHint === ParameterTyping.String) {
+            return {
+                data: StringFragment.fromString(value as string),
+                isArray: false,
+            };
+        }
 
-        const evaluatedNodes: { [key: string]: SearchableMap<string, NodeIO<string>> } = {
-            [isForwards ? 'input' : 'output']: new SearchableMap(
+        return {
+            data: (value as Exclude<ParameterValueDatum, string>),
+            isArray: false,
+        };
+    }
+
+    static toParameterDatum(value: NodeIOValue, typeHint: ParameterTyping): ParameterValueDatum | null {
+        if (value.isArray) {
+            if (typeHint === ParameterTyping.String) {
+                return (value.data as StringFragment[])
+                    .reduce<StringFragment | null | undefined>(
+                        (a, e) => a?.mergeWith(e),
+                        new StringFragment(),
+                    )
+                    ?.flattenToString() || null;
+            }
+
+            if (typeHint === ParameterTyping.Children) {
+                return (value.data as ComponentInstanceFactory[][]).flat();
+            }
+
+            return (value.data as ParameterValueDatum[])[0];
+        }
+
+        if (typeHint === ParameterTyping.String) {
+            return (value.data as StringFragment).flattenToString();
+        }
+
+        return value.data as ParameterValueDatum | null;
+    }
+
+    evaluateBackwards(
+        output: ParameterValueDatum,
+        saverStore: NodeEvaluationCache = {},
+    ): ParameterValueDatum | null {
+        const inputNode = this.nodes.getById(SpecialNodeIds.Input)!;
+
+        const evaluatedNodes: NodeEvaluationCache = {
+            [SpecialNodeIds.Output]: new SearchableMap(
                 {
-                    id: isForwards ? 'input' : 'output',
-                    value: {
-                        data: source,
-                        isArray: false,
-                    },
+                    id: 'value',
+                    value: ParameterRelationshipEvaluator.toNodeValue(output, this.outputType),
+                },
+            ),
+            ...saverStore,
+        };
+        const evaluateNode = (node: NodeInstance): SearchableMap<string, NodeIO<string>> | null => {
+            if (evaluatedNodes.hasOwnProperty(node.id)) {
+                return evaluatedNodes[node.id];
+            }
+
+            if (node.node.id === SpecialNodeIds.Saver) {
+                return saverStore[node.id];
+            }
+
+            const sources = node
+                .node
+                .outputs
+                .sMap((output): NodeIO<string> => {
+                    const inputNodeData = this
+                        .nodes
+                        .map(compNode => [
+                                compNode,
+                                compNode
+                                    .inputMappings
+                                    .find(input =>
+                                        input.isReference &&
+                                        input.referenceTo!.locationId === node.id &&
+                                        input.referenceTo!.id === output.id,
+                                    ),
+                            ] as const,
+                        )
+                        .filter(e => e[1])
+                        .map(t => evaluateNode(t[0])?.getById(t[1]!.id)?.value || null);
+
+                    const allNodeData: NodeValueDatum[] = [];
+                    inputNodeData.forEach(value => {
+                        if (value === null) {
+                            allNodeData.push(null);
+                            return;
+                        }
+
+                        if (!value.isArray) {
+                            allNodeData.push(value.data as NodeValueDatum);
+                        } else {
+                            allNodeData.push(...value.data as NodeValueDatum[]);
+                        }
+                    });
+
+                    if (allNodeData.length) {
+                        return {
+                            id: output.id,
+                            value: {
+                                isArray: true,
+                                data: allNodeData,
+                            },
+                        };
+                    } else if (allNodeData.length === 1) {
+                        return {
+                            id: output.id,
+                            value: {
+                                isArray: false,
+                                data: allNodeData[0],
+                            },
+                        };
+                    }
+
+                    return {
+                        id: output.id,
+                        value: {
+                            isArray: false,
+                            data: null,
+                        },
+                    };
+                });
+
+            const knownInputs = node
+                .inputMappings
+                .sFilter(t => !t.isReference)
+                .sMap(t => ({
+                    id: t.id,
+                    value: t.value!,
+                }));
+
+            const res = node.node.evaluateBackwards(sources, knownInputs);
+            if (res !== null) {
+                const value = new SearchableMap(...res);
+                evaluatedNodes[node.id] = value;
+
+                return value;
+            } else {
+                return null;
+            }
+        };
+
+        const res = evaluateNode(inputNode);
+        if (res !== null) {
+            const inputData = res.getById('value')!.value;
+
+            return ParameterRelationshipEvaluator.toParameterDatum(inputData, this.inputType);
+        } else {
+            return null;
+        }
+    }
+
+    evaluate(
+        input: ParameterValueDatum,
+        onSaver?: (id: string, datum: SearchableMap<string, NodeIO<string>>) => void,
+    ): ParameterValueDatum | null {
+        const exitNode = this.nodes.getById(SpecialNodeIds.Output)!;
+
+        const evaluatedNodes: NodeEvaluationCache = {
+            [SpecialNodeIds.Input]: new SearchableMap(
+                {
+                    id: 'value',
+                    value: ParameterRelationshipEvaluator.toNodeValue(input, this.inputType),
                 },
             ),
         };
-        const evaluateNode = (node: NodeInstance): SearchableMap<string, NodeIO<string>> => {
+        const evaluateNode = (node: NodeInstance): SearchableMap<string, NodeIO<string>> | null => {
             if (evaluatedNodes.hasOwnProperty(node.id)) {
                 return evaluatedNodes[node.id];
             }
@@ -83,21 +238,54 @@ export default class ParameterRelationshipEvaluator {
                         };
                     }
 
-                    return evaluateNode(
+                    const lookup = evaluateNode(
                         this.nodes.getById(input.referenceTo!.locationId)!,
-                    ).getById(input.referenceTo!.locationId)!;
+                    );
+                    if (lookup !== null) {
+                        return lookup.getById(input.referenceTo!.locationId)!;
+                    }
+
+                    return {
+                        id: input.id,
+                        value: {
+                            data: null,
+                            isArray: false,
+                        },
+                    };
                 });
 
-            const value = new SearchableMap(
-                ...(
-                    isForwards ? node.node.evaluateForwards(sources) : node.node.evaluateBackwards(sources)
-                ),
-            );
-            evaluatedNodes[node.id] = value;
+            const res = node.node.evaluateForwards(sources);
+            if (res !== null) {
+                const value = new SearchableMap(...res);
+                evaluatedNodes[node.id] = value;
 
-            return value;
+                if (node.node.id === SpecialNodeIds.Saver && onSaver) {
+                    onSaver(node.id, value);
+                }
+
+                return value;
+            } else {
+                return null;
+            }
         };
 
-        return evaluateNode(exitNode).getById(isForwards ? 'output' : 'input')!.value.data as ParameterValueType;
+        const res = evaluateNode(exitNode);
+
+        if (onSaver) {
+            this
+                .nodes
+                .sFilter(t => t.node.id === SpecialNodeIds.Saver)
+                .forEach(node => {
+                    evaluateNode(node);
+                });
+        }
+
+        if (res !== null) {
+            const data = res.getById('value')!.value;
+
+            return ParameterRelationshipEvaluator.toParameterDatum(data, this.outputType);
+        } else {
+            return null;
+        }
     }
 }

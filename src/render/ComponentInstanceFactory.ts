@@ -8,7 +8,7 @@ import {
     ImmutableSpecialParameters,
     Magazine,
     ParameterValue,
-    ParameterValueType,
+    ParameterValueDatum,
     SpecialParameterId,
 } from '../types';
 import { EditMode } from '../ui/SpreadRenderer';
@@ -56,7 +56,7 @@ export default class ComponentInstanceFactory<R extends Component<ParameterOf<R>
     respectfullyUpdateParameter(
         maginet: Maginet,
         parameter: ParameterOf<R>,
-        update: (currentValue: ParameterValueType, foundAt?: string[]) => ParameterValueType,
+        update: (currentValue: ParameterValueDatum, foundAt?: string[]) => ParameterValueDatum,
     ) {
         const parameterHere = this
             .parameterMapping

@@ -1,23 +1,25 @@
-import { AngleUnit, ColorType, ParameterType, ParameterValueType, SizeUnit } from '../../types';
+import { AngleUnit, ColorType, ParameterTyping, ParameterValueDatum, SizeUnit } from '../../types';
 import { Color } from './Color';
 import Size from './Size';
 
-export default function getDefaultValueForType(type: ParameterType): ParameterValueType {
+export default function getDefaultValueForType(type: ParameterTyping): ParameterValueDatum {
     switch (type) {
-        case ParameterType.Angle:
+        case ParameterTyping.Angle:
             return {
                 angleSize: 90,
                 unit: AngleUnit.Degrees,
             };
-        case ParameterType.String:
+        case ParameterTyping.String:
             return 'Lorem ipsum dolor sit amet';
-        case ParameterType.Number:
+        case ParameterTyping.Number:
             return 1;
-        case ParameterType.Size:
+        case ParameterTyping.Size:
             return new Size(25, SizeUnit.MM);
-        case ParameterType.Children:
+        case ParameterTyping.Children:
             return [];
-        case ParameterType.Color:
+        case ParameterTyping.Boolean:
+            return false;
+        case ParameterTyping.Color:
             return new Color({
                 type: ColorType.Solid,
                 values: {
@@ -28,7 +30,7 @@ export default function getDefaultValueForType(type: ParameterType): ParameterVa
                     noise: 0,
                 },
             });
-        case ParameterType.Font:
+        case ParameterTyping.Font:
             return 'Arial';
     }
 }

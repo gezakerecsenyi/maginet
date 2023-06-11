@@ -1,22 +1,22 @@
-import { Angle, ParameterType, ParameterValueType } from '../../types';
+import { Angle, ParameterTyping, ParameterValueDatum } from '../../types';
 
-export default function validateType(type: ParameterType, value: ParameterValueType) {
+export default function validateType(type: ParameterTyping, value: ParameterValueDatum) {
     let isGood = true;
     switch (type) {
-        case ParameterType.Number:
+        case ParameterTyping.Number:
             isGood = typeof value === 'number';
             break;
-        case ParameterType.Color:
+        case ParameterTyping.Color:
             isGood = typeof value === 'object' && Object.hasOwn(value, 'isColor');
             break;
-        case ParameterType.Font:
-        case ParameterType.String:
+        case ParameterTyping.Font:
+        case ParameterTyping.String:
             isGood = typeof value === 'string';
             break;
-        case ParameterType.Size:
+        case ParameterTyping.Size:
             isGood = typeof value === 'object' && Object.hasOwn(value, 'distance');
             break;
-        case ParameterType.Angle:
+        case ParameterTyping.Angle:
             isGood = typeof value === 'object' &&
                 Object.hasOwn(value, 'unit') &&
                 [
@@ -24,7 +24,7 @@ export default function validateType(type: ParameterType, value: ParameterValueT
                     'rad',
                 ].includes((value as Angle).unit);
             break;
-        case ParameterType.Children:
+        case ParameterTyping.Children:
             isGood = typeof value === 'object' && Object.hasOwn(value, 'length');
             break;
     }

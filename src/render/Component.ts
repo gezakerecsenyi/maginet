@@ -5,9 +5,9 @@ import validateType from '../lib/utils/validateType';
 import {
     ImmutableSpecialParameters,
     ParametersFrom,
-    ParameterType,
+    ParameterTyping,
     ParameterValue,
-    ParameterValueType,
+    ParameterValueDatum,
     RenderMethod,
     SpecialParameterId,
     UIBindingSpec,
@@ -50,32 +50,32 @@ export default class Component<T extends string = string> {
             {
                 displayKey: 'X',
                 id: SpecialParameterId.X,
-                type: ParameterType.Size,
+                type: ParameterTyping.Size,
             },
             {
                 displayKey: 'Y',
                 id: SpecialParameterId.Y,
-                type: ParameterType.Size,
+                type: ParameterTyping.Size,
             },
             {
                 displayKey: 'Layer Depth',
                 id: SpecialParameterId.LayerDepth,
-                type: ParameterType.Number,
+                type: ParameterTyping.Number,
             },
             {
                 displayKey: 'Width',
                 id: SpecialParameterId.Width,
-                type: ParameterType.Size,
+                type: ParameterTyping.Size,
             },
             {
                 displayKey: 'Height',
                 id: SpecialParameterId.Height,
-                type: ParameterType.Size,
+                type: ParameterTyping.Size,
             },
             {
                 displayKey: 'Component contents',
                 id: SpecialParameterId.Contents,
-                type: ParameterType.Children,
+                type: ParameterTyping.Children,
                 isRenderedAsChildren: true,
                 isImmutable: true,
             },
@@ -85,7 +85,7 @@ export default class Component<T extends string = string> {
                         {
                             displayKey: 'Sublayers',
                             id: SpecialParameterId.Children,
-                            type: ParameterType.Children,
+                            type: ParameterTyping.Children,
                             isRenderedAsChildren: true,
                         } as const,
                     ] :
@@ -181,7 +181,7 @@ export default class Component<T extends string = string> {
         {
             id: T | SpecialParameterId,
             isReference?: boolean,
-            value?: ParameterValueType
+            value?: ParameterValueDatum
         }
     > {
         return new SearchableMap(...value)
@@ -211,7 +211,7 @@ export default class Component<T extends string = string> {
             );
     }
 
-    addParameter(key: string, type: ParameterType, id: T) {
+    addParameter(key: string, type: ParameterTyping, id: T) {
         this.parameters.push({
             displayKey: key,
             type,

@@ -1,5 +1,5 @@
 import Component from '../../render/Component';
-import { ParameterType, SizeUnit, SpecialParameterId } from '../../types';
+import { ParameterTyping, SizeUnit, SpecialParameterId } from '../../types';
 import renderAsBlock from '../utils/renderAsBlock';
 import Size from '../utils/Size';
 
@@ -7,7 +7,7 @@ export const Spread = new Component<'moving-x'>(
     [
         {
             id: 'moving-x',
-            type: ParameterType.Size,
+            type: ParameterTyping.Size,
             displayKey: 'X Movement tracker',
         },
     ],

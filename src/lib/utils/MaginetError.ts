@@ -1,5 +1,5 @@
 import ComponentInstanceFactory from '../../render/ComponentInstanceFactory';
-import { ParameterValueType } from '../../types';
+import { ParameterValueDatum } from '../../types';
 
 export default class MaginetError extends Error {
     static Name = 'MaginetError';
@@ -13,7 +13,7 @@ export default class MaginetError extends Error {
         return error;
     }
 
-    static processValue = (e?: ParameterValueType) => e === undefined ? '[unknown]' : (
+    static processValue = (e?: ParameterValueDatum) => e === undefined ? '[unknown]' : (
         Object.hasOwn(e as object, 'length') ?
             `[array (${(e as ComponentInstanceFactory[]).length})]` :
             JSON.stringify(e)

@@ -1,6 +1,7 @@
 import { Color } from './lib/utils/Color';
 import SearchableMap from './lib/utils/SearchableMap';
 import Size from './lib/utils/Size';
+import StringFragment from './lib/utils/StringFragment';
 import Component from './render/Component';
 import ComponentInstance from './render/ComponentInstance';
 import ComponentInstanceFactory from './render/ComponentInstanceFactory';
@@ -21,20 +22,21 @@ export enum SpecialParameterId {
     Height = 'height',
 }
 
-export enum ParameterType {
+export enum ParameterTyping {
     Number = 'number',
     String = 'string',
     Color = 'color',
     Font = 'font',
     Size = 'size',
     Angle = 'angle',
+    Boolean = 'boolean',
     Children = '(children)',
 }
 
 export interface Parameter {
     displayKey: string;
     id: string;
-    type: ParameterType;
+    type: ParameterTyping;
     isRenderedAsChildren?: boolean;
     isImmutable?: boolean;
 }
@@ -92,11 +94,20 @@ export interface Angle {
     unit: AngleUnit;
 }
 
-export type ParameterValueType = number | string | Color | Font | Size | Angle | ComponentInstanceFactory<any>[];
+export type ParameterValueDatum =
+    number
+    | string
+    | Color
+    | Font
+    | Size
+    | Angle
+    | ComponentInstanceFactory<any>[]
+    | boolean;
+export type NodeValueDatum = Exclude<ParameterValueDatum, string> | StringFragment | null;
 
 export interface ParameterValue<T extends string = string> {
     id: T | SpecialParameterId;
-    value: ParameterValueType,
+    value: ParameterValueDatum,
 }
 
 export interface HistoryState extends Magazine {
