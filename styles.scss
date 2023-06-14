@@ -2,6 +2,7 @@ $bg-dark: #313131;
 $bg-darker: #282828;
 $accent-dark: #131313;
 $almost-black: #0e0e0e;
+$mid-gray: #d2d2d2;
 $translucent-white: rgba(255, 255, 255, 0.7);
 
 $green: #6aea9d;
@@ -472,11 +473,23 @@ body {
       height: 70vh;
     }
 
+    .connection-line {
+      position: absolute;
+      width: 2px;
+      transform-origin: top;
+      background-color: black;
+
+      &.hidden {
+        display: none;
+      }
+    }
+
     .node-view-window {
       position: relative;
 
       .node {
-        position: absolute;
+        position: relative;
+        width: fit-content;
         padding: 12px;
         user-select: none;
         color: white;
@@ -486,6 +499,26 @@ body {
 
         &.selected {
           border-color: $purple;
+        }
+
+        .node-blob {
+          position: absolute;
+          display: inline-block;
+          width: 10px;
+
+          height: 10px;
+          border: 1px solid black;
+          border-radius: 10px;
+
+          background-color: $mid-gray;
+
+          &.nb-l {
+            left: -5px;
+          }
+
+          &.nb-r {
+            right: -5px;
+          }
         }
 
         h4 {

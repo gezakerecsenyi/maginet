@@ -44,117 +44,116 @@ export default class Maginet {
         this.spreadRenderer = new SpreadRenderer(previewContainer, this);
         this.spreadListRenderer = new SpreadListRenderer(spreadListContainer, this);
 
-        this.magazine = {
-            spreads: [
-                new ComponentInstance(
-                    '0',
-                    Spread,
-                    [
-                        {
-                            id: 'moving-x',
-                            value: new Size(40, SizeUnit.MM),
-                        },
-                        {
-                            id: SpecialParameterId.Children,
-                            value: [
-                                new ComponentInstanceFactory(
-                                    'text0',
-                                    TextSpan,
-                                    [
-                                        new ParameterCalculator(
-                                            'text',
-                                            {
-                                                isReference: false,
-                                                value: 'Testing 123',
-                                            },
-                                        ),
-                                        new ParameterCalculator(
-                                            SpecialParameterId.X,
-                                            {
-                                                tiedTo: {
-                                                    locationId: '0',
-                                                    id: 'moving-x',
-                                                },
-                                                value: new Size(100, SizeUnit.MM),
-                                                isReference: false,
-                                            },
-                                        ),
-                                        new ParameterCalculator(
-                                            SpecialParameterId.Y,
-                                            {
-                                                isReference: false,
-                                                value: new Size(80, SizeUnit.MM),
-                                            },
-                                        ),
-                                    ],
-                                ),
-                                new ComponentInstanceFactory(
-                                    'text1',
-                                    TextSpan,
-                                    [
-                                        new ParameterCalculator(
-                                            'text',
-                                            {
-                                                value: 'Test-2',
-                                                isReference: false,
-                                            },
-                                        ),
-                                        new ParameterCalculator(
-                                            SpecialParameterId.X,
-                                            {
-                                                tiedTo: {
-                                                    locationId: '0',
-                                                    id: 'moving-x',
-                                                },
-                                                value: new Size(100, SizeUnit.MM),
-                                                isReference: false,
-                                            },
-                                        ),
-                                        new ParameterCalculator(
-                                            SpecialParameterId.Y,
-                                            {
-                                                isReference: false,
-                                                value: new Size(100, SizeUnit.MM),
-                                            },
-                                        ),
-                                    ],
-                                ),
-                                new ComponentInstanceFactory(
-                                    'text2',
-                                    TextSpan,
-                                    [
-                                        new ParameterCalculator(
-                                            'text',
-                                            {
-                                                value: 'Test-3',
-                                                isReference: false,
-                                            },
-                                        ),
-                                        new ParameterCalculator(
-                                            SpecialParameterId.X,
-                                            {
-                                                tiedTo: {
-                                                    locationId: '0',
-                                                    id: 'moving-x',
-                                                },
-                                                value: new Size(100, SizeUnit.MM),
-                                                isReference: false,
-                                            },
-                                        ),
-                                        new ParameterCalculator(
-                                            SpecialParameterId.Y,
-                                            {
-                                                isReference: false,
-                                                value: new Size(120, SizeUnit.MM),
-                                            },
-                                        ),
-                                    ],
-                                ),
-                            ],
-                        },
-                    ],
-                ),
+        const instance = new ComponentInstance(
+            '0',
+            Spread,
+            [
+                {
+                    id: 'moving-x',
+                    value: new Size(40, SizeUnit.MM),
+                },
             ],
+            null,
+            null,
+        );
+        instance.addChildren(
+            {
+                id: 'text0',
+                component: TextSpan,
+                parameterMapping: [
+                    new ParameterCalculator(
+                        'text',
+                        {
+                            isReference: false,
+                            value: 'Testing 1',
+                        },
+                    ),
+                    new ParameterCalculator(
+                        SpecialParameterId.X,
+                        {
+                            tiedTo: {
+                                locationId: '0',
+                                id: 'moving-x',
+                            },
+                            value: new Size(100, SizeUnit.MM),
+                            isReference: false,
+                        },
+                    ),
+                    new ParameterCalculator(
+                        SpecialParameterId.Y,
+                        {
+                            isReference: false,
+                            value: new Size(80, SizeUnit.MM),
+                        },
+                    ),
+                ],
+            },
+            {
+                id: 'text1',
+                component: TextSpan,
+                parameterMapping: [
+                    new ParameterCalculator(
+                        'text',
+                        {
+                            isReference: false,
+                            value: 'Testing 2',
+                        },
+                    ),
+                    new ParameterCalculator(
+                        SpecialParameterId.X,
+                        {
+                            tiedTo: {
+                                locationId: '0',
+                                id: 'moving-x ',
+                            },
+                            value: new Size(100, SizeUnit.MM),
+                            isReference: false,
+                        },
+                    ),
+                    new ParameterCalculator(
+                        SpecialParameterId.Y,
+                        {
+                            isReference: false,
+                            value: new Size(110, SizeUnit.MM),
+                        },
+                    ),
+                ],
+            },
+            {
+                id: 'text2',
+                component: TextSpan,
+                parameterMapping: [
+                    new ParameterCalculator(
+                        'text',
+                        {
+                            isReference: false,
+                            value: 'Testing 3',
+                        },
+                    ),
+                    new ParameterCalculator(
+                        SpecialParameterId.X,
+                        {
+                            tiedTo: {
+                                locationId: '0',
+                                id: 'moving-x',
+                            },
+                            value: new Size(100, SizeUnit.MM),
+                            isReference: false,
+                        },
+                    ),
+                    new ParameterCalculator(
+                        SpecialParameterId.Y,
+                        {
+                            isReference: false,
+                            value: new Size(140, SizeUnit.MM),
+                        },
+                    ),
+                ],
+            },
+        );
+
+        this.magazine = {
+            spreads: [instance],
             customComponents: [],
         };
 

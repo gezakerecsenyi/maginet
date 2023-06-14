@@ -9,6 +9,7 @@ import {
     Magazine,
     ParameterValue,
     ParameterValueDatum,
+    ParentRelationDescriptor,
     SpecialParameterId,
 } from '../types';
 import { EditMode } from '../ui/SpreadRenderer';
@@ -17,32 +18,42 @@ import Component from './Component';
 import ComponentInstance from './ComponentInstance';
 import { ParameterCalculator } from './ParameterCalculator';
 
-export type ParameterOf<R> = (R extends Component<infer U> ? U : never) | SpecialParameterId;
-export type ParameterCalculatorMap<R extends Component<ParameterOf<R>>> = SearchableMap<ParameterOf<R>, ParameterCalculator<ParameterOf<R>>>;
+export type ParameterOf<R extends Component<any>> = (R extends Component<infer U> ? U : never) | SpecialParameterId;
+export type ParameterCalculatorMap<R extends Component<any>> = SearchableMap<ParameterOf<R>, ParameterCalculator<ParameterOf<R>>>;
 
-export default class ComponentInstanceFactory<R extends Component<ParameterOf<R>> = Component> {
+export type ComponentInstanceFactoryData<R extends string, M extends string> = {
+    id: string,
+    component: Component<R | SpecialParameterId>,
+    parameterMapping: ParameterCalculator<Exclude<R | SpecialParameterId, ImmutableSpecialParameters>>[],
+    parent: ParentRelationDescriptor<M>,
+}
+
+export default class ComponentInstanceFactory<R extends string = string, M extends string = any> {
     public component;
     public id: string;
     public readonly compositionType = ComponentCompositionType.Factory;
+    public parent: ParentRelationDescriptor<M>;
+    private _parameterMapping!: ParameterCalculatorMap<Component<R | SpecialParameterId>>;
 
-    constructor(
-        id: string,
-        component: R,
-        parameterMapping: ParameterCalculator<Exclude<ParameterOf<R>, ImmutableSpecialParameters>>[],
-    ) {
+    constructor({
+        id,
+        component,
+        parameterMapping,
+        parent,
+    }: ComponentInstanceFactoryData<R, M>) {
         this.component = component;
         this.parameterMapping = new SearchableMap(...parameterMapping);
         this.id = id;
+        this.parent = parent;
     }
-
-    private _parameterMapping!: ParameterCalculatorMap<R>;
 
     get parameterMapping() {
         return this._parameterMapping;
     }
 
-    set parameterMapping(value: ParameterCalculatorMap<R>) {
-        this._parameterMapping = this.component.withDefaults(value) as ParameterCalculatorMap<R>;
+    set parameterMapping(value) {
+        this._parameterMapping =
+            this.component.withDefaults(value) as ParameterCalculatorMap<Component<R | SpecialParameterId>>;
     }
 
     static getInstanceId(instance: ComponentInstanceFactory<any>): string {
@@ -55,7 +66,7 @@ export default class ComponentInstanceFactory<R extends Component<ParameterOf<R>
 
     respectfullyUpdateParameter(
         maginet: Maginet,
-        parameter: ParameterOf<R>,
+        parameter: R | SpecialParameterId,
         update: (currentValue: ParameterValueDatum, foundAt?: string[]) => ParameterValueDatum,
     ) {
         const parameterHere = this
@@ -103,31 +114,37 @@ export default class ComponentInstanceFactory<R extends Component<ParameterOf<R>
         }
     }
 
-    composeComponentInstance(magazine: Magazine): ComponentInstance<ParameterOf<R>> {
-        return new ComponentInstance<ParameterOf<R>>(this.id, this.component, this.parameterMapping.map(p => {
-            const valueHere = p.value ?? (p.resolveValue(
-                magazine,
-                true,
-                null,
-            )[0] || 0);
+    composeComponentInstance(magazine: Magazine): ComponentInstance<SpecialParameterId | R, M> {
+        return new ComponentInstance<R | SpecialParameterId, M>(
+            this.id,
+            this.component,
+            this.parameterMapping.map(p => {
+                const valueHere = p.value ?? (p.resolveValue(
+                    magazine,
+                    true,
+                    null,
+                )[0] || 0);
 
-            const parameterDetails = this.component.parameters.getById(p.id)!;
-            if ((window as PopulatedWindow).debug) {
-                if (!validateType(parameterDetails.type, valueHere)) {
-                    throw new MaginetError(
-                        `Detected discrepancy in passed data for parameter ${parameterDetails.displayKey} (in ` +
-                        `instance ${this.id} of ${this.component.displayName}/${this.component.id}):\n` +
-                        `\tExpected type: ${parameterDetails.type}\n\tGot value: ` +
-                        `${MaginetError.processValue(valueHere)}\n`,
-                    );
+                const parameterDetails = this.component.parameters.getById(p.id)!;
+                if ((window as PopulatedWindow).debug) {
+                    if (!validateType(parameterDetails.type, valueHere)) {
+                        throw new MaginetError(
+                            `Detected discrepancy in passed data for parameter ${parameterDetails.displayKey} (in ` +
+                            `instance ${this.id} of ${this.component.displayName}/${this.component.id}):\n` +
+                            `\tExpected type: ${parameterDetails.type}\n\tGot value: ` +
+                            `${MaginetError.processValue(valueHere)}\n`,
+                        );
+                    }
                 }
-            }
 
-            return {
-                ...parameterDetails,
-                value: valueHere,
-            };
-        }), this);
+                return {
+                    ...parameterDetails,
+                    value: valueHere,
+                };
+            }),
+            this,
+            this.parent,
+        );
     }
 
     locateSelfInComponent<T extends string>(

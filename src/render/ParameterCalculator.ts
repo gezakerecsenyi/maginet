@@ -1,23 +1,23 @@
 import ParameterRelationshipEvaluator from '../nodes/ParameterRelationshipEvaluator';
-import { Magazine, ParameterAssociationDescriptor, ParameterValueDatum } from '../types';
+import { Magazine, ParameterAssociationDescriptor, ParameterValueDatum, SpecialParameterId } from '../types';
 import ComponentInstance from './ComponentInstance';
 import ComponentInstanceFactory from './ComponentInstanceFactory';
 
-export interface ParameterCalculatorData {
+export interface ParameterCalculatorData<T extends string = string> {
     isReference: boolean;
     value?: ParameterValueDatum;
-    tiedTo?: ParameterAssociationDescriptor;
+    tiedTo?: ParameterAssociationDescriptor<T>;
     relationshipEvaluator?: ParameterRelationshipEvaluator;
 }
 
 export class ParameterCalculator<T extends string> {
-    id: T;
+    id: T | SpecialParameterId;
     isReference: boolean;
-    tiedTo?: ParameterAssociationDescriptor;
+    tiedTo?: ParameterAssociationDescriptor<T>;
     value?: ParameterValueDatum;
     relationshipEvaluator?: ParameterRelationshipEvaluator;
 
-    constructor(id: T, data: ParameterCalculatorData) {
+    constructor(id: T | SpecialParameterId, data: ParameterCalculatorData<T>) {
         this.id = id;
         this.isReference = data.isReference;
         this.tiedTo = data.tiedTo;

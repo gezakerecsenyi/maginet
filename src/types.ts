@@ -105,6 +105,18 @@ export type ParameterValueDatum =
     | boolean;
 export type NodeValueDatum = ParameterValueDatum | StringFragment | null;
 
+export type Optional<T, K extends keyof T> = Pick<Partial<T>, K> & Omit<T, K>;
+export type ParentComponent<T extends string = string> =
+    Component<T>
+    | ComponentInstance<T>
+    | ComponentInstanceFactory<T>
+    | null;
+
+export type ParentRelationDescriptor<T extends string = string> = {
+    parameter: T | SpecialParameterId,
+    component: ParentComponent<T>
+} | null
+
 export interface ParameterValue<T extends string = string> {
     id: T | SpecialParameterId;
     value: ParameterValueDatum,
@@ -165,7 +177,7 @@ export type UIBindingSpec<T extends string> = {
     height: (T | SpecialParameterId)[];
 }
 
-export interface ParameterAssociationDescriptor {
+export interface ParameterAssociationDescriptor<T extends string = string> {
     locationId: string;
-    id: SpecialParameterId | string;
+    id: SpecialParameterId | T;
 }

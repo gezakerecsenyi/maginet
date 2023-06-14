@@ -1,25 +1,35 @@
 import MaginetError from '../lib/utils/MaginetError';
 import SearchableMap from '../lib/utils/SearchableMap';
 import validateType from '../lib/utils/validateType';
-import { ComponentCompositionType, ParameterValue, SpecialParameterId } from '../types';
+import {
+    ComponentCompositionType,
+    Optional,
+    ParameterValue,
+    ParentRelationDescriptor,
+    SpecialParameterId,
+} from '../types';
 import { PopulatedWindow } from '../window';
 import Component from './Component';
-import ComponentInstanceFactory from './ComponentInstanceFactory';
+import ComponentInstanceFactory, { ComponentInstanceFactoryData } from './ComponentInstanceFactory';
 import RenderContext from './RenderContext';
 
-export default class ComponentInstance<T extends string = string> {
+export default class ComponentInstance<T extends string = string, M extends string = any> {
     public component: Component<T>;
-    public fromFactory: ComponentInstanceFactory<Component<T | SpecialParameterId>> | null;
+    public fromFactory: ComponentInstanceFactory<T | SpecialParameterId> | null;
     public readonly compositionType = ComponentCompositionType.Instance;
     public id: string;
+    private parent: ParentRelationDescriptor<M>;
 
     constructor(
         id: string,
         component: Component<T>,
         parameterValues: ParameterValue<T>[],
-        fromFactory: ComponentInstanceFactory<Component<SpecialParameterId | T>> | null = null,
+        fromFactory: ComponentInstanceFactory<T | SpecialParameterId> | null = null,
+        parent: ParentRelationDescriptor<M>,
     ) {
         this.id = id;
+
+        this.parent = parent;
 
         this.fromFactory = fromFactory;
         this.component = component;
@@ -54,8 +64,17 @@ export default class ComponentInstance<T extends string = string> {
         }
     }
 
-    addChild(child: ComponentInstanceFactory<any>) {
+    addChildren(...childData: Optional<ComponentInstanceFactoryData<any, any>, 'parent'>[]) {
         const currentChildren = this.parameterValues.getById(SpecialParameterId.Children);
+        const newChildren = childData.map(childSpec => new ComponentInstanceFactory(
+            {
+                parent: {
+                    component: this,
+                    parameter: SpecialParameterId.Children,
+                },
+                ...childSpec,
+            },
+        ));
         this
             .parameterValues
             .updateById(
@@ -63,15 +82,17 @@ export default class ComponentInstance<T extends string = string> {
                 {
                     value: [
                         ...(currentChildren ? currentChildren.value as ComponentInstanceFactory[] : []),
-                        child,
+                        ...newChildren,
                     ],
                 },
             );
 
-        return child;
+        return newChildren;
     }
 
     render(renderer: RenderContext): HTMLElement {
-        return this.component.render(this.parameterValues, this.fromFactory, renderer);
+        return this
+            .component
+            .render(this.parameterValues, this.fromFactory, renderer);
     }
 }

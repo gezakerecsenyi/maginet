@@ -296,46 +296,51 @@ export default class SpreadRenderer {
 
                     if (dragInsertData) {
                         this.hasMovedNewElement = false;
+
                         this.newElement = this
                             .currentSpread
-                            .addChild(
-                                new ComponentInstanceFactory(v4(), dragInsertData, [
-                                    new ParameterCalculator(
-                                        SpecialParameterId.X,
-                                        {
-                                            isReference: false,
-                                            value: new Size(this.selectionStart.x, SizeUnit.PX),
-                                        },
-                                    ),
-                                    new ParameterCalculator(
-                                        SpecialParameterId.Y,
-                                        {
-                                            isReference: false,
-                                            value: new Size(this.selectionStart.y, SizeUnit.PX),
-                                        },
-                                    ),
-                                    ...(
-                                        (dragInsertData.bindUITo.width || [])
-                                            .map(e => new ParameterCalculator(
-                                                e,
-                                                {
-                                                    isReference: false,
-                                                    value: new Size(0, SizeUnit.PX),
-                                                },
-                                            ))
-                                    ),
-                                    ...(
-                                        (dragInsertData.bindUITo.height || [])
-                                            .map(e => new ParameterCalculator(
-                                                e,
-                                                {
-                                                    isReference: false,
-                                                    value: new Size(0, SizeUnit.PX),
-                                                },
-                                            ))
-                                    ),
-                                ]),
-                            );
+                            .addChildren(
+                                {
+                                    id: v4(),
+                                    component: dragInsertData,
+                                    parameterMapping: [
+                                        new ParameterCalculator(
+                                            SpecialParameterId.X,
+                                            {
+                                                isReference: false,
+                                                value: new Size(this.selectionStart.x, SizeUnit.PX),
+                                            },
+                                        ),
+                                        new ParameterCalculator(
+                                            SpecialParameterId.Y,
+                                            {
+                                                isReference: false,
+                                                value: new Size(this.selectionStart.y, SizeUnit.PX),
+                                            },
+                                        ),
+                                        ...(
+                                            (dragInsertData.bindUITo.width || [])
+                                                .map(e => new ParameterCalculator(
+                                                    e,
+                                                    {
+                                                        isReference: false,
+                                                        value: new Size(0, SizeUnit.PX),
+                                                    },
+                                                ))
+                                        ),
+                                        ...(
+                                            (dragInsertData.bindUITo.height || [])
+                                                .map(e => new ParameterCalculator(
+                                                    e,
+                                                    {
+                                                        isReference: false,
+                                                        value: new Size(0, SizeUnit.PX),
+                                                    },
+                                                ))
+                                        ),
+                                    ],
+                                },
+                            )[0];
 
                         this.maginet.rerender([this.newElement]);
                     }

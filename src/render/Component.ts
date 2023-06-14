@@ -128,8 +128,8 @@ export default class Component<T extends string = string> {
     }
 
     render(
-        parameterValues: SearchableMap<T | SpecialParameterId, ParameterValue<T>>,
-        srcInstance: ComponentInstanceFactory<Component<T | SpecialParameterId>> | null,
+        parameterValues: SearchableMap<SpecialParameterId | T, ParameterValue<T>>,
+        srcInstance: ComponentInstanceFactory<SpecialParameterId | T> | null,
         renderer: RenderContext,
     ) {
         let renderRes!: HTMLElement;

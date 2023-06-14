@@ -11,37 +11,35 @@ export default function renderAsBlock(width?: Size, height?: Size, htmlClassName
         element.style.width = width?.toCSSString() || '0px';
         element.style.height = height?.toCSSString() || '0px';
 
-        const children = [
-            ...(
-                dataHere
-                    .find(e => e.id === SpecialParameterId.Contents)
-                    ?.value || []
-            ) as ComponentInstanceFactory[],
-            ...(
-                dataHere
-                    .find(e => e.id === SpecialParameterId.Children)
-                    ?.value || []
-            ) as ComponentInstanceFactory[],
-        ];
-        children
-            .map((child) => child.composeComponentInstance(renderer.maginet.magazine))
-            .map((child) => {
-                const element = child.render(renderer);
+        [
+            SpecialParameterId.Contents,
+            SpecialParameterId.Children,
+        ]
+            .map((childListName) => (
+                    dataHere
+                        .find(e => e.id === childListName)
+                        ?.value as ComponentInstanceFactory[] || []
+                )
+                    .map(child => child.composeComponentInstance(renderer.maginet.magazine))
+                    .map(child => {
+                        const element = child.render(renderer);
 
-                element.style.position = 'absolute';
-                element.style.top = (
-                    child
-                        .parameterValues
-                        .getById(SpecialParameterId.Y)!.value as Size
-                ).toCSSString();
-                element.style.left = (
-                    child
-                        .parameterValues
-                        .getById(SpecialParameterId.X)!.value as Size
-                ).toCSSString();
+                        element.style.position = 'absolute';
+                        element.style.top = (
+                            child
+                                .parameterValues
+                                .getById(SpecialParameterId.Y)!.value as Size
+                        ).toCSSString();
+                        element.style.left = (
+                            child
+                                .parameterValues
+                                .getById(SpecialParameterId.X)!.value as Size
+                        ).toCSSString();
 
-                return element;
-            })
+                        return element;
+                    }),
+            )
+            .flat()
             .forEach(child => {
                 element.appendChild(child);
             });
