@@ -1,10 +1,9 @@
 import { v4 } from 'uuid';
 import areBBsIntersecting, { BasicDOMRect } from '../lib/utils/areBBsIntersecting';
+import RenderContext from '../lib/utils/RenderContext';
 import Size from '../lib/utils/Size';
 import Maginet from '../Maginet';
 import ComponentInstanceFactory from '../render/ComponentInstanceFactory';
-import { ParameterCalculator } from '../render/ParameterCalculator';
-import RenderContext from '../render/RenderContext';
 import { SizeUnit, SpecialClasses, SpecialParameterId, ToolType } from '../types';
 import ToolbarRenderer from './ToolbarRenderer';
 
@@ -299,48 +298,38 @@ export default class SpreadRenderer {
 
                         this.newElement = this
                             .currentSpread
-                            .addChildren(
+                            .addChild(
                                 {
                                     id: v4(),
                                     component: dragInsertData,
-                                    parameterMapping: [
-                                        new ParameterCalculator(
-                                            SpecialParameterId.X,
-                                            {
-                                                isReference: false,
-                                                value: new Size(this.selectionStart.x, SizeUnit.PX),
-                                            },
-                                        ),
-                                        new ParameterCalculator(
-                                            SpecialParameterId.Y,
-                                            {
-                                                isReference: false,
-                                                value: new Size(this.selectionStart.y, SizeUnit.PX),
-                                            },
-                                        ),
-                                        ...(
-                                            (dragInsertData.bindUITo.width || [])
-                                                .map(e => new ParameterCalculator(
-                                                    e,
-                                                    {
-                                                        isReference: false,
-                                                        value: new Size(0, SizeUnit.PX),
-                                                    },
-                                                ))
-                                        ),
-                                        ...(
-                                            (dragInsertData.bindUITo.height || [])
-                                                .map(e => new ParameterCalculator(
-                                                    e,
-                                                    {
-                                                        isReference: false,
-                                                        value: new Size(0, SizeUnit.PX),
-                                                    },
-                                                ))
-                                        ),
-                                    ],
                                 },
-                            )[0];
+                            )
+                            .setParameter(
+                                SpecialParameterId.X,
+                                {
+                                    isReference: false,
+                                    value: new Size(this.selectionStart.x, SizeUnit.PX),
+                                },
+                            )
+                            .setParameter(
+                                SpecialParameterId.Y,
+                                {
+                                    isReference: false,
+                                    value: new Size(this.selectionStart.y, SizeUnit.PX),
+                                },
+                            );
+
+                        (dragInsertData.bindUITo.width || [])
+                            .concat(dragInsertData.bindUITo.height || [])
+                            .forEach(e => {
+                                this.newElement?.setParameter(
+                                    e,
+                                    {
+                                        isReference: false,
+                                        value: new Size(0, SizeUnit.PX),
+                                    },
+                                );
+                            });
 
                         this.maginet.rerender([this.newElement]);
                     }
@@ -476,7 +465,7 @@ export default class SpreadRenderer {
                     offset: event.movementY / this.zoom,
                 },
             ];
-            const alreadyUpdated: string[][] = [];
+            const alreadyUpdated: string[] = [];
             for (const instance of this.selectedInstances) {
                 for (const parameterDescriptor of parameterDescriptors) {
                     const addend = new Size(parameterDescriptor.offset, SizeUnit.PX);
@@ -485,21 +474,13 @@ export default class SpreadRenderer {
                         this.maginet,
                         parameterDescriptor.id,
                         (currentValue, foundAt) => {
-                            const newValue = (currentValue as Size).add(addend);
-                            if (foundAt) {
-                                if (
-                                    !alreadyUpdated.some(
-                                        a => a.every((e, i) => e === foundAt[i]),
-                                    )
-                                ) {
-                                    alreadyUpdated.push(foundAt);
-                                    return newValue;
-                                }
-
-                                return currentValue as Size;
+                            const locationId = `${foundAt.id}.${parameterDescriptor.id}`;
+                            if (!alreadyUpdated.includes(locationId)) {
+                                alreadyUpdated.push(locationId);
+                                return (currentValue as Size).add(addend);
                             }
 
-                            return newValue;
+                            return currentValue as Size;
                         },
                     );
                 }

@@ -1,5 +1,5 @@
+import RenderContext from '../lib/utils/RenderContext';
 import Maginet from '../Maginet';
-import RenderContext from '../render/RenderContext';
 
 export default class SpreadListRenderer {
     private container: HTMLElement;

@@ -1,10 +1,19 @@
 import { Color } from '../lib/utils/Color';
+import { DefiniteParameterCalculator, ParameterCalculator } from '../lib/utils/ParameterCalculator';
+import ParentRelationDescriptor from '../lib/utils/ParentRelationDescriptor';
 import Size from '../lib/utils/Size';
 import Maginet from '../Maginet';
 import ParameterRelationshipEvaluator from '../nodes/ParameterRelationshipEvaluator';
 import ComponentInstance from '../render/ComponentInstance';
 import ComponentInstanceFactory from '../render/ComponentInstanceFactory';
-import { ParameterTyping, ParameterValueDatum, RerenderOption, SizeUnit, SpecialClasses } from '../types';
+import {
+    ComponentCompositionType,
+    ParameterTyping,
+    RerenderOption,
+    SizeUnit,
+    SpecialClasses,
+    SpecialParameterId,
+} from '../types';
 import { ContextEntryType } from './ContextMenuRenderer';
 import ModalRenderer from './ModalRenderer';
 import NodeRenderer from './NodeRenderer';
@@ -13,14 +22,13 @@ export default class DataRenderer {
     private parent: HTMLElement;
     private maginet: Maginet;
     private focussingOn: ComponentInstanceFactory | null = null;
-    private selectingLinkForParameter: string | null = null;
 
     constructor(parent: HTMLElement, maginet: Maginet) {
         this.parent = parent;
         this.maginet = maginet;
     }
 
-    private _selectingLinkFor: ComponentInstanceFactory | null = null;
+    private _selectingLinkFor: ParameterCalculator<any> | null = null;
 
     get selectingLinkFor() {
         return this._selectingLinkFor;
@@ -28,10 +36,6 @@ export default class DataRenderer {
 
     set selectingLinkFor(value) {
         this._selectingLinkFor = value;
-
-        if (!value) {
-            this.selectingLinkForParameter = null;
-        }
 
         Array
             .from(this.parent.getElementsByClassName(SpecialClasses.ReferenceTarget))
@@ -53,6 +57,110 @@ export default class DataRenderer {
             .find(e => e.id === this.maginet.currentSpreadId)!;
     }
 
+    static getEditorFor<T extends SpecialParameterId | string>(
+        maginet: Maginet,
+        parameter: DefiniteParameterCalculator<T>,
+    ): HTMLElement {
+        const parameterData = parameter
+            .belongsTo
+            ?.component
+            .parameters
+            .getById(parameter.id);
+
+        const resolvedValue = parameter.resolveValue()[0];
+
+        if (!parameterData || !resolvedValue) {
+            return document.createElement('span');
+        }
+
+        switch (parameterData.type) {
+            case ParameterTyping.Size: {
+                const node = document.createElement('span');
+                node.className = 'size-editor';
+
+                const distance = document.createElement('input');
+                distance.type = 'number';
+                distance.valueAsNumber = (resolvedValue as Size).distance;
+
+                const unit = document.createElement('select');
+                const options = [
+                    SizeUnit.PX,
+                    SizeUnit.MM,
+                    SizeUnit.PT,
+                ]
+                    .map(e => {
+                        const option = document.createElement('option');
+                        option.innerText = e;
+                        option.value = e;
+
+                        return option;
+                    });
+                unit.replaceChildren(...options);
+                unit.value = (resolvedValue as Size).unit;
+
+                let currentValue = resolvedValue as Size;
+                const listener = () => {
+                    maginet.updateInstanceParameter(
+                        parameter,
+                        new Size(distance.valueAsNumber, unit.value as SizeUnit),
+                        RerenderOption.PreviewsAndLinked,
+                    );
+                };
+                unit.addEventListener('change', () => {
+                    currentValue.distance = distance.valueAsNumber;
+                    currentValue = currentValue.toType(unit.value as SizeUnit);
+                    distance.valueAsNumber = currentValue.distance;
+
+                    maginet.updateInstanceParameter(
+                        parameter,
+                        currentValue,
+                        RerenderOption.PreviewsAndLinked,
+                    );
+                });
+                distance.addEventListener('input', listener);
+
+                node.replaceChildren(distance, unit);
+
+                return node;
+            }
+            case ParameterTyping.String: {
+                const node = document.createElement('span');
+
+                const lNode = document.createElement('span');
+                const rNode = document.createElement('span');
+                lNode.innerText = `"`;
+                rNode.innerText = `"`;
+
+                const cNode = document.createElement('span');
+                cNode.contentEditable = 'true';
+                cNode.className = 'editable';
+                cNode.innerText = resolvedValue as string;
+
+                const id = `${parameter.belongsTo!.id}.${parameter.id}::editor`;
+                cNode.setAttribute('id', id);
+                cNode.addEventListener('input', () => {
+                    const newValue = cNode.innerText;
+                    maginet.updateInstanceParameter(parameter, newValue, RerenderOption.PreviewsAndLinked);
+                });
+
+                node.replaceChildren(lNode, cNode, rNode);
+
+                return node;
+            }
+            case ParameterTyping.Color: {
+                const node = document.createElement('span');
+                node.classList.add('color-chip');
+                node.style.backgroundColor = (resolvedValue as Color).toCSSString();
+
+                return node;
+            }
+        }
+
+        const fallbackNode = document.createElement('span');
+        fallbackNode.innerText = JSON.stringify(resolvedValue);
+        return fallbackNode;
+    }
+
     ensureFocus(newNode?: ComponentInstanceFactory | null) {
         const node = (newNode === undefined ? this.focussingOn : newNode);
         this.focussingOn = node;
@@ -62,28 +170,25 @@ export default class DataRenderer {
         }
 
         if (node) {
-            const nodeLocation = node.locateSelfInComponent(
-                this.maginet.magazine,
-                this.viewingComponent.parameterValues,
-                this.viewingComponent.component,
-            );
-            if (nodeLocation) {
-                const pathToNode = [
-                    this.viewingComponent.id,
-                    ...nodeLocation,
-                ];
-                for (let i = 0; i < pathToNode.length; i++) {
-                    const pathToHere = pathToNode.slice(0, i + 1);
+            document
+                .getElementById(`${node.id}::opener`)
+                ?.setAttribute('open', 'open');
 
-                    const id = pathToHere.join('.') + '::opener';
-                    const element = document.getElementById(id);
-                    if (element) {
-                        element.setAttribute('open', 'open');
-                        if (i === pathToNode.length - 1) {
-                            window.location.hash = '';
-                            window.location.hash = id;
-                        }
-                    }
+            let currentLocation: ParentRelationDescriptor<any> | null = node.parent;
+
+            while (currentLocation && currentLocation.component) {
+                document
+                    .getElementById(`${currentLocation.component.id}::opener`)
+                    ?.setAttribute('open', 'open');
+
+                document
+                    .getElementById(`${currentLocation.parameterId}.${currentLocation.component.id}::opener`)
+                    ?.setAttribute('open', 'open');
+
+                if (currentLocation.component.compositionType !== ComponentCompositionType.Specification) {
+                    currentLocation = currentLocation.component.parent;
+                } else {
+                    break;
                 }
             }
         }
@@ -92,27 +197,13 @@ export default class DataRenderer {
     renderList(only?: ComponentInstanceFactory[]) {
         const list = document.createElement('ol');
 
-        const selectedNodeLocation = this.focussingOn?.locateSelfInComponent(
-            this.maginet.magazine,
-            this.viewingComponent.parameterValues,
-            this.viewingComponent.component,
-        );
-        const pathToSelectedNode = selectedNodeLocation ? [
-            this.viewingComponent.id,
-            ...selectedNodeLocation,
-        ].join('.') : '';
-
-        const formatProperties = (
-            list: [ComponentInstance, ComponentInstanceFactory | null][],
-            currentPath: string[] = [],
-        ): HTMLElement[] => {
+        const formatProperties = (list: [ComponentInstance, ComponentInstanceFactory | null][]): HTMLElement[] => {
             return list.map(([instance, factory]) => {
                 const elementContainer = document.createElement('li');
                 const elementHere = document.createElement('details');
 
-                const idStem = currentPath.concat(instance.id).join('.');
-                elementHere.setAttribute('id', `${idStem}::opener`);
-                if (idStem === pathToSelectedNode) {
+                elementHere.setAttribute('id', `${instance.id}::opener`);
+                if (instance.id === this.focussingOn?.id) {
                     elementHere.setAttribute('open', 'open');
                 }
 
@@ -121,7 +212,7 @@ export default class DataRenderer {
                 const addPropertyEntry = (
                     property: string,
                     value: string | HTMLElement | HTMLElement[],
-                    id: string,
+                    parameter: DefiniteParameterCalculator<any>,
                 ) => {
                     const entry = document.createElement('li');
 
@@ -130,7 +221,7 @@ export default class DataRenderer {
                     entry.appendChild(tiedToButton);
 
                     tiedToButton.addEventListener('click', (e) => {
-                        if (this.selectingLinkFor && this.selectingLinkForParameter && factory) {
+                        if (this.selectingLinkFor && parameter.belongsTo) {
                             e.stopPropagation();
                             e.stopImmediatePropagation();
                             e.preventDefault();
@@ -138,8 +229,8 @@ export default class DataRenderer {
                             const nodeEditorContainer = document.createElement('div');
 
                             const evaluator = new ParameterRelationshipEvaluator(
-                                factory.component.parameters.getById(id)!.type,
-                                this.selectingLinkFor.component.parameters.getById(this.selectingLinkForParameter)!.type,
+                                parameter.belongsTo.component.parameters.getById(parameter.id)!.type,
+                                this.selectingLinkFor.belongsTo!.component.parameters.getById(this.selectingLinkFor.id)!.type,
                             );
                             const nodeEditor = new NodeRenderer(nodeEditorContainer, evaluator);
                             const modal = new ModalRenderer(nodeEditorContainer);
@@ -149,7 +240,7 @@ export default class DataRenderer {
                     });
 
                     if (factory) {
-                        const parameterMapping = factory.parameterMapping.getById(id);
+                        const parameterMapping = factory.parameterMapping.getById(parameter.id);
                         tiedToButton.classList.remove('dummy');
 
                         if (parameterMapping?.isReference) {
@@ -158,11 +249,7 @@ export default class DataRenderer {
                             tiedToButton.addEventListener('click', (e) => {
                                 e.stopPropagation();
 
-                                const parameterSource = parameterMapping.resolveValue(
-                                    this.maginet.magazine,
-                                    true,
-                                    null,
-                                );
+                                const [, foundInComponent, foundInParameter] = parameterMapping.resolveValue();
 
                                 const boundingBox = tiedToButton.getBoundingClientRect();
                                 this.maginet.contextMenuRenderer.summonContextMenu(
@@ -172,16 +259,14 @@ export default class DataRenderer {
                                         {
                                             type: ContextEntryType.Info,
                                             text: `Tied to _${
-                                                parameterSource[2]
+                                                foundInComponent
                                                     ?.component
                                                     .parameters
-                                                    .getById(
-                                                        parameterSource[1].slice(-2)[0],
-                                                    )
+                                                    .getById((foundInParameter)!)
                                                     ?.displayKey
                                                 || '<unknown>'
                                             }_ in _${
-                                                parameterSource[2]
+                                                foundInComponent
                                                     ?.component
                                                     .displayName ||
                                                 '<unknown>'
@@ -194,15 +279,13 @@ export default class DataRenderer {
                                             type: ContextEntryType.Button,
                                             label: 'Detach',
                                             onClick: () => {
-                                                factory!
-                                                    .parameterMapping
-                                                    .updateById(
-                                                        id,
-                                                        {
-                                                            value: instance.parameterValues.getById(id)!.value,
-                                                            isReference: false,
-                                                        },
-                                                    );
+                                                factory!.setParameter(
+                                                    parameter.id,
+                                                    {
+                                                        value: instance.parameterValues.getById(parameter.id)!.value,
+                                                        isReference: false,
+                                                    },
+                                                );
                                                 this.maginet.rerender([factory!]);
 
                                                 return true;
@@ -234,8 +317,7 @@ export default class DataRenderer {
                                             label: 'Link to value...',
                                             onClick: () => {
                                                 tiedToButton.classList.add(SpecialClasses.ReferenceSource);
-                                                this.selectingLinkFor = factory;
-                                                this.selectingLinkForParameter = id;
+                                                this.selectingLinkFor = parameterMapping!;
 
                                                 return true;
                                             },
@@ -268,11 +350,7 @@ export default class DataRenderer {
                         valueLabel = document.createElement('details');
                         valueLabel.className = 'child-list';
 
-                        const idStem = currentPath.concat(instance.id, id).join('.');
-                        valueLabel.setAttribute('id', `${idStem}::opener`);
-                        if (idStem === pathToSelectedNode) {
-                            valueLabel.setAttribute('open', 'open');
-                        }
+                        valueLabel.setAttribute('id', `${parameter.contextualId}::opener`);
 
                         const childList = document.createElement('ol');
                         childList.replaceChildren(...value as HTMLElement[]);
@@ -284,7 +362,7 @@ export default class DataRenderer {
                         entry.appendChild(valueLabel);
                     }
 
-                    entry.setAttribute('id', currentPath.concat(instance.id, id).join('.'));
+                    entry.setAttribute('id', parameter.contextualId);
                     entry.appendChild(valueLabel);
 
                     listHere.appendChild(entry);
@@ -296,31 +374,31 @@ export default class DataRenderer {
 
                 instance
                     .parameterValues
-                    .asSecondaryKey(instance.component.parameters)
                     .forEach(parameter => {
-                        if (parameter.type !== ParameterTyping.Children) {
+                        const parameterData = instance.component.parameters.getById(parameter.id)!;
+                        const parameterSource = factory?.parameterMapping.getById(parameter.id) || parameter;
+
+                        if (parameterData.type !== ParameterTyping.Children) {
                             addPropertyEntry(
-                                parameter.displayKey,
-                                this.getEditorFor(
-                                    parameter.value,
-                                    parameter.type,
-                                    currentPath.concat(instance.id, parameter.id),
+                                parameterData.displayKey,
+                                DataRenderer.getEditorFor(
+                                    this.maginet,
+                                    parameterSource,
                                 ),
-                                parameter.id,
+                                parameterSource,
                             );
                         } else {
                             addPropertyEntry(
-                                parameter.displayKey,
+                                parameterData.displayKey,
                                 formatProperties(
-                                    (parameter.value as ComponentInstanceFactory[]).map(
+                                    (parameterSource.value as ComponentInstanceFactory[]).map(
                                         e => [
-                                            e.composeComponentInstance(this.maginet.magazine),
+                                            e.composeComponentInstance(),
                                             e,
                                         ],
                                     ),
-                                    currentPath.concat(instance.id, parameter.id),
                                 ),
-                                parameter.id,
+                                parameterSource,
                             );
                         }
                     });
@@ -333,26 +411,19 @@ export default class DataRenderer {
 
         if (only) {
             for (const factory of only) {
-                const location = factory.locateSelfInComponent(
-                    this.maginet.magazine,
-                    this.viewingComponent.parameterValues,
-                    this.viewingComponent.component,
-                );
-
-                if (location) {
+                if (location && factory.parent?.component) {
                     const container = document.getElementById(
-                        `${[this.viewingComponent.id].concat(...location).join('.')}::opener`,
+                        `${factory.parent.component.id}.${factory.parent.parameterId}::opener`,
                     )?.closest('li');
 
                     if (container) {
                         container.replaceWith(...formatProperties(
                             [
                                 [
-                                    factory.composeComponentInstance(this.maginet.magazine),
+                                    factory.composeComponentInstance(),
                                     factory,
                                 ],
                             ],
-                            [this.viewingComponent.id].concat(...location).slice(0, -1),
                         ));
                         continue;
                     }
@@ -371,98 +442,5 @@ export default class DataRenderer {
             this.parent.replaceChildren(list);
             this.ensureFocus(this.focussingOn);
         }
-    }
-
-    public getEditorFor(
-        value: ParameterValueDatum,
-        type: ParameterTyping,
-        location: string[],
-    ): HTMLElement {
-        switch (type) {
-            case ParameterTyping.Size: {
-                const node = document.createElement('span');
-                node.className = 'size-editor';
-
-                const distance = document.createElement('input');
-                distance.type = 'number';
-                distance.valueAsNumber = (value as Size).distance;
-
-                const unit = document.createElement('select');
-                const options = [
-                    SizeUnit.PX,
-                    SizeUnit.MM,
-                    SizeUnit.PT,
-                ]
-                    .map(e => {
-                        const option = document.createElement('option');
-                        option.innerText = e;
-                        option.value = e;
-
-                        return option;
-                    });
-                unit.replaceChildren(...options);
-                unit.value = (value as Size).unit;
-
-                let currentValue = value as Size;
-                const listener = () => {
-                    this.maginet.updateInstanceParameter(
-                        location,
-                        new Size(distance.valueAsNumber, unit.value as SizeUnit),
-                        RerenderOption.PreviewsAndLinked,
-                    );
-                };
-                unit.addEventListener('change', () => {
-                    currentValue.distance = distance.valueAsNumber;
-                    currentValue = currentValue.toType(unit.value as SizeUnit);
-                    distance.valueAsNumber = currentValue.distance;
-
-                    this.maginet.updateInstanceParameter(
-                        location,
-                        currentValue,
-                        RerenderOption.PreviewsAndLinked,
-                    );
-                });
-                distance.addEventListener('input', listener);
-
-                node.replaceChildren(distance, unit);
-
-                return node;
-            }
-            case ParameterTyping.String: {
-                const node = document.createElement('span');
-
-                const lNode = document.createElement('span');
-                const rNode = document.createElement('span');
-                lNode.innerText = `"`;
-                rNode.innerText = `"`;
-
-                const cNode = document.createElement('span');
-                cNode.contentEditable = 'true';
-                cNode.className = 'editable';
-                cNode.innerText = value as string;
-
-                const id = `${location.join('.')}::editor`;
-                cNode.setAttribute('id', id);
-                cNode.addEventListener('input', () => {
-                    const newValue = cNode.innerText;
-                    this.maginet.updateInstanceParameter(location, newValue, RerenderOption.PreviewsAndLinked);
-                });
-
-                node.replaceChildren(lNode, cNode, rNode);
-
-                return node;
-            }
-            case ParameterTyping.Color: {
-                const node = document.createElement('span');
-                node.classList.add('color-chip');
-                node.style.backgroundColor = (value as Color).toCSSString();
-
-                return node;
-            }
-        }
-
-        const fallbackNode = document.createElement('span');
-        fallbackNode.innerText = JSON.stringify(value);
-        return fallbackNode;
     }
 }

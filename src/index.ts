@@ -1,7 +1,5 @@
 import Maginet from './Maginet';
 
-console.log('Instantiating Maginet...');
-
 const spreadListContainer = document.getElementById('spreads')!;
 const previewContainer = document.getElementById('preview')!;
 const dataContainer = document.getElementById('data')!;

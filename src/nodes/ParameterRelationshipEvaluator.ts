@@ -17,6 +17,7 @@ export default class ParameterRelationshipEvaluator {
         outputType: ParameterTyping,
         nodes?: SearchableMap<string, NodeInstance<any, any>>,
     ) {
+        console.log('got', inputType, outputType);
         this.inputType = inputType;
         this.outputType = outputType;
 
@@ -30,8 +31,8 @@ export default class ParameterRelationshipEvaluator {
                     [
                         {
                             id: 'value',
-                            displayName: toSentenceCase(outputType),
-                            type: outputType,
+                            displayName: toSentenceCase(inputType),
+                            type: inputType,
                         },
                     ],
                     () => [],
@@ -140,8 +141,8 @@ export default class ParameterRelationshipEvaluator {
                                     .inputMappings
                                     .find(input =>
                                         input.isReference &&
-                                        input.referenceTo!.locationId === node.id &&
-                                        input.referenceTo!.id === output.id,
+                                        input.referenceTo!.node.id === node.id &&
+                                        input.referenceTo!.parameterId === output.id,
                                     ),
                             ] as const,
                         )
@@ -220,7 +221,7 @@ export default class ParameterRelationshipEvaluator {
 
     evaluate(
         input: ParameterValueDatum,
-        onSaver?: (id: string, datum: SearchableMap<string, NodeIO<string>>) => void,
+        onSaver?: (id: string, datum: NodeIO<string>) => void,
     ): ParameterValueDatum | null {
         const exitNode = this.nodes.getById(SpecialNodeIds.Output)!;
 
@@ -232,12 +233,12 @@ export default class ParameterRelationshipEvaluator {
                 },
             ),
         };
-        const evaluateNode = (node: NodeInstance): SearchableMap<string, NodeIO<string>> | null => {
-            if (evaluatedNodes.hasOwnProperty(node.id)) {
-                return evaluatedNodes[node.id];
+        const evaluateNode = (instance: NodeInstance): SearchableMap<string, NodeIO<string>> | null => {
+            if (evaluatedNodes.hasOwnProperty(instance.id)) {
+                return evaluatedNodes[instance.id];
             }
 
-            const sources = node
+            const sources = instance
                 .inputMappings
                 .sMap((input): NodeIO<string> => {
                     if (!input.isReference) {
@@ -247,11 +248,9 @@ export default class ParameterRelationshipEvaluator {
                         };
                     }
 
-                    const lookup = evaluateNode(
-                        this.nodes.getById(input.referenceTo!.locationId)!,
-                    );
+                    const lookup = evaluateNode(input.referenceTo!.node);
                     if (lookup !== null) {
-                        return lookup.getById(input.referenceTo!.locationId)!;
+                        return lookup.getById(input.referenceTo!.parameterId)!;
                     }
 
                     return {
@@ -263,13 +262,13 @@ export default class ParameterRelationshipEvaluator {
                     };
                 });
 
-            const res = node.node.evaluateForwards(sources);
+            const res = instance.node.evaluateForwards(sources);
             if (res !== null) {
                 const value = new SearchableMap(...res);
-                evaluatedNodes[node.id] = value;
+                evaluatedNodes[instance.id] = value;
 
-                if (node.node.id === SpecialNodeIds.Saver && onSaver) {
-                    onSaver(node.id, value);
+                if (instance.node.id === SpecialNodeIds.Saver && onSaver) {
+                    onSaver(instance.id, value.getById('value')!);
                 }
 
                 return value;

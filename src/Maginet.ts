@@ -1,14 +1,15 @@
 import cloneDeep from 'lodash/cloneDeep';
 import { Spread } from './lib/components/Spread';
 import { TextSpan } from './lib/components/TextSpan';
+import { ParameterCalculator } from './lib/utils/ParameterCalculator';
 import Size from './lib/utils/Size';
 import ComponentInstance from './render/ComponentInstance';
 import ComponentInstanceFactory from './render/ComponentInstanceFactory';
-import { ParameterCalculator } from './render/ParameterCalculator';
 import {
     ComponentCompositionType,
     HistoryState,
     Magazine,
+    ParameterAssociationDescriptor,
     ParameterTyping,
     ParameterValueDatum,
     RerenderOption,
@@ -48,109 +49,117 @@ export default class Maginet {
             '0',
             Spread,
             [
-                {
-                    id: 'moving-x',
-                    value: new Size(40, SizeUnit.MM),
-                },
+                new ParameterCalculator(
+                    'moving-x',
+                    {
+                        isReference: false,
+                        value: new Size(40, SizeUnit.MM),
+                    },
+                ),
             ],
             null,
-            null,
         );
-        instance.addChildren(
-            {
-                id: 'text0',
-                component: TextSpan,
-                parameterMapping: [
-                    new ParameterCalculator(
-                        'text',
-                        {
-                            isReference: false,
-                            value: 'Testing 1',
-                        },
+        instance
+            .addChild(
+                {
+                    id: 'text0',
+                    component: TextSpan,
+                    parameterMapping: [],
+                },
+            )
+            .setParameter(
+                'text',
+                {
+                    isReference: false,
+                    value: 'Testing 1',
+                },
+            )
+            .setParameter(
+                SpecialParameterId.X,
+                {
+                    tiedTo: new ParameterAssociationDescriptor(
+                        instance,
+                        'moving-x',
                     ),
-                    new ParameterCalculator(
-                        SpecialParameterId.X,
-                        {
-                            tiedTo: {
-                                locationId: '0',
-                                id: 'moving-x',
-                            },
-                            value: new Size(100, SizeUnit.MM),
-                            isReference: false,
-                        },
+                    value: new Size(100, SizeUnit.MM),
+                    isReference: true,
+                },
+            )
+            .setParameter(
+                SpecialParameterId.Y,
+                {
+                    isReference: false,
+                    value: new Size(80, SizeUnit.MM),
+                },
+            );
+
+        instance
+            .addChild(
+                {
+                    id: 'text1',
+                    component: TextSpan,
+                    parameterMapping: [],
+                },
+            )
+            .setParameter(
+                'text',
+                {
+                    isReference: false,
+                    value: 'Testing 2',
+                },
+            )
+            .setParameter(
+                SpecialParameterId.X,
+                {
+                    tiedTo: new ParameterAssociationDescriptor(
+                        instance,
+                        'moving-x',
                     ),
-                    new ParameterCalculator(
-                        SpecialParameterId.Y,
-                        {
-                            isReference: false,
-                            value: new Size(80, SizeUnit.MM),
-                        },
+                    value: new Size(100, SizeUnit.MM),
+                    isReference: true,
+                },
+            )
+            .setParameter(
+                SpecialParameterId.Y,
+                {
+                    isReference: false,
+                    value: new Size(110, SizeUnit.MM),
+                },
+            );
+
+        instance
+            .addChild(
+                {
+                    id: 'text2',
+                    component: TextSpan,
+                    parameterMapping: [],
+                },
+            )
+            .setParameter(
+                'text',
+                {
+                    isReference: false,
+                    value: 'Testing 3',
+                },
+            )
+            .setParameter(
+                SpecialParameterId.X,
+                {
+                    tiedTo: new ParameterAssociationDescriptor(
+                        instance,
+                        'moving-x',
                     ),
-                ],
-            },
-            {
-                id: 'text1',
-                component: TextSpan,
-                parameterMapping: [
-                    new ParameterCalculator(
-                        'text',
-                        {
-                            isReference: false,
-                            value: 'Testing 2',
-                        },
-                    ),
-                    new ParameterCalculator(
-                        SpecialParameterId.X,
-                        {
-                            tiedTo: {
-                                locationId: '0',
-                                id: 'moving-x ',
-                            },
-                            value: new Size(100, SizeUnit.MM),
-                            isReference: false,
-                        },
-                    ),
-                    new ParameterCalculator(
-                        SpecialParameterId.Y,
-                        {
-                            isReference: false,
-                            value: new Size(110, SizeUnit.MM),
-                        },
-                    ),
-                ],
-            },
-            {
-                id: 'text2',
-                component: TextSpan,
-                parameterMapping: [
-                    new ParameterCalculator(
-                        'text',
-                        {
-                            isReference: false,
-                            value: 'Testing 3',
-                        },
-                    ),
-                    new ParameterCalculator(
-                        SpecialParameterId.X,
-                        {
-                            tiedTo: {
-                                locationId: '0',
-                                id: 'moving-x',
-                            },
-                            value: new Size(100, SizeUnit.MM),
-                            isReference: false,
-                        },
-                    ),
-                    new ParameterCalculator(
-                        SpecialParameterId.Y,
-                        {
-                            isReference: false,
-                            value: new Size(140, SizeUnit.MM),
-                        },
-                    ),
-                ],
-            },
-        );
+                    value: new Size(100, SizeUnit.MM),
+                    isReference: true,
+                },
+            )
+            .setParameter(
+                SpecialParameterId.Y,
+                {
+                    isReference: false,
+                    value: new Size(140, SizeUnit.MM),
+                },
+            );
 
         this.magazine = {
             spreads: [instance],
@@ -234,8 +243,7 @@ export default class Maginet {
                         instanceOrFactory.parameterMapping :
                         instanceOrFactory.parameterValues
                 )
-                    .asSecondaryKey(instanceOrFactory.component.parameters)
-                    .sFilter(e => e.type === ParameterTyping.Children);
+                    .sFilter(e => instanceOrFactory.component.parameters.getById(e.id)?.type === ParameterTyping.Children);
 
                 for (const parameter of childParameters) {
                     let isFound = false;
@@ -282,13 +290,13 @@ export default class Maginet {
                             .some(param =>
                                 param.isReference &&
                                 of.some(t =>
-                                    t.id === param.tiedTo!.locationId ||
+                                    t.id === param.tiedTo!.inComponent.id ||
                                     (
                                         t.compositionType === ComponentCompositionType.Factory &&
                                         t.parameterMapping.some(compParam =>
                                             compParam.isReference &&
-                                            compParam.tiedTo!.locationId === param.tiedTo!.locationId &&
-                                            compParam.tiedTo!.id === param.tiedTo!.id,
+                                            compParam.tiedTo!.inComponent.id === param.tiedTo!.inComponent.id &&
+                                            compParam.tiedTo!.parameterId === param.tiedTo!.parameterId,
                                         )
                                     ),
                                 ),
@@ -338,69 +346,39 @@ export default class Maginet {
         return element;
     }
 
-    updateInstanceParameter(location: string[], value: ParameterValueDatum, rerender = RerenderOption.All) {
-        const attemptToTraverse = (
-            instanceOrFactory: ComponentInstance | ComponentInstanceFactory,
-            location: string[],
-        ) => {
-            if (instanceOrFactory.compositionType === ComponentCompositionType.Factory) {
-                if (location.length === 1) {
-                    instanceOrFactory.respectfullyUpdateParameter(this, location[0], () => value);
+    updateInstanceParameter(
+        parameter: ParameterCalculator<any>,
+        value: ParameterValueDatum,
+        rerender = RerenderOption.All,
+    ) {
+        if (parameter.belongsTo) {
+            if (parameter.belongsTo.compositionType === ComponentCompositionType.Instance) {
+                parameter.belongsTo.updateParameter(parameter.id, value);
 
-                    if (rerender === RerenderOption.All) {
-                        this.rerender([instanceOrFactory]);
-                    } else if (rerender === RerenderOption.Previews || rerender === RerenderOption.PreviewsAndLinked) {
-                        this.spreadRenderer.renderCurrentSpread([instanceOrFactory]);
-                        this.spreadListRenderer.updatePreviews();
+                if (rerender === RerenderOption.All) {
+                    this.rerender();
+                } else if (rerender === RerenderOption.Previews || rerender === RerenderOption.PreviewsAndLinked) {
+                    this.spreadRenderer.renderCurrentSpread();
+                    this.spreadListRenderer.updatePreviews();
 
-                        if (rerender === RerenderOption.PreviewsAndLinked) {
-                            this.dataRenderer.renderList(this.getLinked([instanceOrFactory]));
-                        }
+                    if (rerender === RerenderOption.PreviewsAndLinked) {
+                        this.dataRenderer.renderList();
                     }
-
-                    return;
                 }
-
-                const children = instanceOrFactory
-                    .parameterMapping
-                    .getById(location[0])
-                    ?.value as ComponentInstanceFactory[];
-                attemptToTraverse(
-                    children.find(e => e.id === location[1])!,
-                    location.slice(2),
-                );
             } else {
-                if (location.length === 1) {
-                    instanceOrFactory.parameterValues.updateById(location[0], { value });
+                parameter.belongsTo.respectfullyUpdateParameter(this, parameter.id, () => value);
 
-                    if (rerender === RerenderOption.All) {
-                        this.rerender();
-                    } else if (rerender === RerenderOption.Previews || rerender === RerenderOption.PreviewsAndLinked) {
-                        this.spreadRenderer.renderCurrentSpread();
-                        this.spreadListRenderer.updatePreviews();
+                if (rerender === RerenderOption.All) {
+                    this.rerender([parameter.belongsTo]);
+                } else if (rerender === RerenderOption.Previews || rerender === RerenderOption.PreviewsAndLinked) {
+                    this.spreadRenderer.renderCurrentSpread([parameter.belongsTo]);
+                    this.spreadListRenderer.updatePreviews();
 
-                        if (rerender === RerenderOption.PreviewsAndLinked) {
-                            this.dataRenderer.renderList(this.getLinked([instanceOrFactory]));
-                        }
+                    if (rerender === RerenderOption.PreviewsAndLinked) {
+                        this.dataRenderer.renderList(this.getLinked([parameter.belongsTo]));
                     }
-
-                    return;
                 }
-
-                const children = instanceOrFactory
-                    .parameterValues
-                    .getById(location[0])
-                    ?.value as ComponentInstanceFactory[];
-                attemptToTraverse(
-                    children.find(e => e.id === location[1])!,
-                    location.slice(2),
-                );
             }
-        };
-
-        attemptToTraverse(
-            this.magazine.spreads.find(e => e.id === location[0])!,
-            location.slice(1),
-        );
+        }
     }
 }

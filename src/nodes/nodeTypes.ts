@@ -1,5 +1,6 @@
 import SearchableMap from '../lib/utils/SearchableMap';
-import { NodeValueDatum, ParameterAssociationDescriptor, ParameterTyping } from '../types';
+import { NodeValueDatum, ParameterTyping } from '../types';
+import NodeInstance from './NodeInstance';
 
 export interface NodeDatumSpecification<T extends string> {
     id: T;
@@ -43,11 +44,16 @@ export type NodeEvaluator<T extends string, Q extends string> = (
     ignoreIllegal?: boolean,
 ) => NodeIO<Q>[] | null;
 
-export interface NodeInputMapping<T> {
+export interface NodeConnectionDescriptor<T extends string> {
+    node: NodeInstance<string, T>,
+    parameterId: T,
+}
+
+export interface NodeInputMapping<T extends string> {
     id: T;
     isReference: boolean;
     value?: NodeIOValue;
-    referenceTo?: ParameterAssociationDescriptor;
+    referenceTo?: NodeConnectionDescriptor<T>;
 }
 
 export interface DefaultInputValue<T extends string> {

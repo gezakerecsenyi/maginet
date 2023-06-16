@@ -1,11 +1,12 @@
 import { Color } from './lib/utils/Color';
+import { DefiniteParameterCalculator } from './lib/utils/ParameterCalculator';
+import RenderContext from './lib/utils/RenderContext';
 import SearchableMap from './lib/utils/SearchableMap';
 import Size from './lib/utils/Size';
 import StringFragment from './lib/utils/StringFragment';
 import Component from './render/Component';
 import ComponentInstance from './render/ComponentInstance';
 import ComponentInstanceFactory from './render/ComponentInstanceFactory';
-import RenderContext from './render/RenderContext';
 
 export interface Magazine {
     spreads: ComponentInstance<any>[];
@@ -64,6 +65,7 @@ export enum ColorType {
 export enum ComponentCompositionType {
     Instance,
     Factory,
+    Specification,
 }
 
 export enum GradientType {
@@ -101,21 +103,16 @@ export type ParameterValueDatum =
     | Font
     | Size
     | Angle
-    | ComponentInstanceFactory<any>[]
+    | ComponentInstanceFactory<any, any>[]
     | boolean;
 export type NodeValueDatum = ParameterValueDatum | StringFragment | null;
 
 export type Optional<T, K extends keyof T> = Pick<Partial<T>, K> & Omit<T, K>;
 export type ParentComponent<T extends string = string> =
-    Component<T>
-    | ComponentInstance<T>
-    | ComponentInstanceFactory<T>
+    Component<T | SpecialParameterId>
+    | ComponentInstance<T | SpecialParameterId, any>
+    | ComponentInstanceFactory<T | SpecialParameterId, any>
     | null;
-
-export type ParentRelationDescriptor<T extends string = string> = {
-    parameter: T | SpecialParameterId,
-    component: ParentComponent<T>
-} | null
 
 export interface ParameterValue<T extends string = string> {
     id: T | SpecialParameterId;
@@ -154,8 +151,8 @@ export enum ToolType {
     RichText = 'tool-rich-text',
 }
 
-export type RenderMethod<T extends string> = (
-    parameterValue: SearchableMap<T | SpecialParameterId, ParameterValue<T>>,
+export type RenderMethod<T extends string = string> = (
+    parameterValue: SearchableMap<T | SpecialParameterId, DefiniteParameterCalculator<T>>,
     renderer: RenderContext,
 ) => HTMLElement;
 
@@ -177,7 +174,15 @@ export type UIBindingSpec<T extends string> = {
     height: (T | SpecialParameterId)[];
 }
 
-export interface ParameterAssociationDescriptor<T extends string = string> {
-    locationId: string;
-    id: SpecialParameterId | T;
+export class ParameterAssociationDescriptor<InComponent extends string = any> {
+    inComponent: ComponentInstanceFactory<InComponent> | ComponentInstance<InComponent>;
+    parameterId: SpecialParameterId | InComponent;
+
+    constructor(
+        inComponent: ComponentInstanceFactory<InComponent> | ComponentInstance<InComponent>,
+        parameterId: SpecialParameterId | InComponent,
+    ) {
+        this.inComponent = inComponent;
+        this.parameterId = parameterId;
+    }
 }

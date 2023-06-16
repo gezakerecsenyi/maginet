@@ -1,4 +1,4 @@
-import Maginet from '../Maginet';
+import Maginet from '../../Maginet';
 
 export default class RenderContext {
     public maginet: Maginet;

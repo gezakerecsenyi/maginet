@@ -1,10 +1,15 @@
 import ComponentInstanceFactory from '../../render/ComponentInstanceFactory';
-import RenderContext from '../../render/RenderContext';
-import { ParameterValue, SpecialClasses, SpecialParameterId } from '../../types';
+import { SpecialClasses, SpecialParameterId } from '../../types';
+import { DefiniteParameterCalculator } from './ParameterCalculator';
+import RenderContext from './RenderContext';
+import SearchableMap from './SearchableMap';
 import Size from './Size';
 
 export default function renderAsBlock(width?: Size, height?: Size, htmlClassName?: string) {
-    return (dataHere: ParameterValue[], renderer: RenderContext): HTMLElement => {
+    return (
+        dataHere: SearchableMap<string | SpecialParameterId, DefiniteParameterCalculator<string>>,
+        renderer: RenderContext,
+    ): HTMLElement => {
         const element = document.createElement('div');
         element.style.position = 'relative';
         element.className = `${SpecialClasses.GeneratedBlock} ${htmlClassName || ''}`;
@@ -20,7 +25,7 @@ export default function renderAsBlock(width?: Size, height?: Size, htmlClassName
                         .find(e => e.id === childListName)
                         ?.value as ComponentInstanceFactory[] || []
                 )
-                    .map(child => child.composeComponentInstance(renderer.maginet.magazine))
+                    .map(child => child.composeComponentInstance())
                     .map(child => {
                         const element = child.render(renderer);
 

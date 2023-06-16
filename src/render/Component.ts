@@ -1,42 +1,43 @@
 import getDefaultValueForType from '../lib/utils/getDefaultValueForType';
 import MaginetError from '../lib/utils/MaginetError';
+import { DefiniteParameterCalculator, ParameterCalculator } from '../lib/utils/ParameterCalculator';
+import RenderContext from '../lib/utils/RenderContext';
 import SearchableMap from '../lib/utils/SearchableMap';
 import validateType from '../lib/utils/validateType';
 import {
+    ComponentCompositionType,
     ImmutableSpecialParameters,
     ParametersFrom,
     ParameterTyping,
-    ParameterValue,
-    ParameterValueDatum,
     RenderMethod,
     SpecialParameterId,
     UIBindingSpec,
 } from '../types';
 import { PopulatedWindow } from '../window';
 import ComponentInstanceFactory from './ComponentInstanceFactory';
-import { ParameterCalculator } from './ParameterCalculator';
-import RenderContext from './RenderContext';
 
-export default class Component<T extends string = string> {
-    public parameters: SearchableMap<T | SpecialParameterId, ParametersFrom<T>>;
+export default class Component<IDs extends string = string> {
+    public parameters: SearchableMap<IDs | SpecialParameterId, ParametersFrom<IDs>>;
     public id: string;
-    public renderMethod: RenderMethod<T>;
+    public renderMethod: RenderMethod<IDs>;
     public displayName: string;
     public isSelectable: boolean;
-    public defaultParameterValues: ParameterValue<T>[];
+    public defaultParameterValues: DefiniteParameterCalculator<IDs>[];
     public contents: ComponentInstanceFactory[];
-    public bindUITo: UIBindingSpec<T>;
+    public bindUITo: UIBindingSpec<IDs>;
+    public readonly compositionType = ComponentCompositionType.Specification;
+    public component = this;
 
     constructor(
-        parameters: ParametersFrom<Exclude<T, ImmutableSpecialParameters>>[],
+        parameters: ParametersFrom<Exclude<IDs, ImmutableSpecialParameters>>[],
         allowChildren: boolean,
         contents: ComponentInstanceFactory[],
-        renderMethod: RenderMethod<T>,
+        renderMethod: RenderMethod<IDs>,
         id: string,
         displayName: string,
         isSelectable: boolean = true,
-        defaultParameterValues: ParameterValue<T>[] = [],
-        bindUITo: UIBindingSpec<T> = {
+        defaultParameterValues: DefiniteParameterCalculator<IDs>[] = [],
+        bindUITo: UIBindingSpec<IDs> = {
             width: [SpecialParameterId.Width],
             height: [SpecialParameterId.Height],
         },
@@ -45,7 +46,7 @@ export default class Component<T extends string = string> {
         this.displayName = displayName;
         this.contents = contents;
         this.bindUITo = bindUITo;
-        this.parameters = new SearchableMap<T | SpecialParameterId, ParametersFrom<T>>(...[
+        this.parameters = new SearchableMap<IDs | SpecialParameterId, ParametersFrom<IDs>>(...[
             ...parameters,
             {
                 displayKey: 'X',
@@ -101,10 +102,13 @@ export default class Component<T extends string = string> {
                     return lookup;
                 }
 
-                return {
-                    id: e.id,
-                    value: getDefaultValueForType(e.type),
-                };
+                return new ParameterCalculator(
+                    e.id,
+                    {
+                        isReference: false,
+                        value: getDefaultValueForType(e.type),
+                    },
+                );
             });
 
         if ((window as PopulatedWindow).debug) {
@@ -112,7 +116,7 @@ export default class Component<T extends string = string> {
                 .parameters
                 .asSecondaryKey(this.defaultParameterValues)
                 .forEach(param => {
-                    if (!validateType(param.type, param.value)) {
+                    if (!validateType(param.type, param.value!)) {
                         throw new MaginetError(
                             `Detected discrepancy in passed data for parameter ${param.displayKey} (in ` +
                             `default value specification for ${this.displayName}):\n` +
@@ -128,8 +132,8 @@ export default class Component<T extends string = string> {
     }
 
     render(
-        parameterValues: SearchableMap<SpecialParameterId | T, ParameterValue<T>>,
-        srcInstance: ComponentInstanceFactory<SpecialParameterId | T> | null,
+        parameterValues: SearchableMap<SpecialParameterId | IDs, DefiniteParameterCalculator<IDs>>,
+        srcInstance: ComponentInstanceFactory<SpecialParameterId | IDs, any> | null,
         renderer: RenderContext,
     ) {
         let renderRes!: HTMLElement;
@@ -158,7 +162,7 @@ export default class Component<T extends string = string> {
                         ?.parameterMapping
                         .map(e => `\t${e.id} == ${e.value ?
                             MaginetError.processValue(e.value) :
-                            `[reference to ${e.tiedTo?.locationId}::${e.tiedTo?.id}]`}`)
+                            `[reference to ${e.tiedTo?.inComponent.id}::${e.tiedTo?.parameterId}]`}`)
                         .join('\n') || '\t[unknown]'
                 ) + `\n\n(+assuming defaults of:\n` + this
                     .defaultParameterValues
@@ -176,42 +180,37 @@ export default class Component<T extends string = string> {
         }
     }
 
-    withDefaults(value: (ParameterCalculator<T | SpecialParameterId> | ParameterValue<T>)[]): SearchableMap<
-        T | SpecialParameterId,
-        {
-            id: T | SpecialParameterId,
-            isReference?: boolean,
-            value?: ParameterValueDatum
-        }
+    withDefaults(value: (ParameterCalculator<IDs | SpecialParameterId>)[]): SearchableMap<
+        IDs | SpecialParameterId,
+        DefiniteParameterCalculator<IDs>
     > {
         return new SearchableMap(...value)
             .concatIfNew(
                 ...this
                     .defaultParameterValues
-                    .map(e => ({
-                        ...e,
-                        isReference: false,
-                    })),
+                    .map(e => e),
             )
             .concatOrReplace(
                 ...this
                     .defaultParameterValues
                     .filter(e => this.parameters.getById(e.id)!.isImmutable)
-                    .map(e => ({
-                        ...e,
+                    .map(e => new ParameterCalculator(e.id, {
+                        ...e.data,
                         isReference: false,
                     })),
             )
             .concatOrReplace(
-                {
-                    id: SpecialParameterId.Contents,
-                    isReference: false,
-                    value: this.contents,
-                },
+                new ParameterCalculator(
+                    SpecialParameterId.Contents,
+                    {
+                        value: this.contents,
+                        isReference: false,
+                    },
+                ),
             );
     }
 
-    addParameter(key: string, type: ParameterTyping, id: T) {
+    addParameter(key: string, type: ParameterTyping, id: IDs) {
         this.parameters.push({
             displayKey: key,
             type,
@@ -219,7 +218,7 @@ export default class Component<T extends string = string> {
         });
     }
 
-    removeParameter(id: T) {
+    removeParameter(id: IDs) {
         this.parameters = this.parameters.sFilter(e => e.id !== id);
     }
 }

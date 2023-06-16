@@ -1,6 +1,7 @@
 import Component from '../../render/Component';
 import { ParameterTyping, SpecialParameterId } from '../../types';
 import { Color } from '../utils/Color';
+import { ParameterCalculator } from '../utils/ParameterCalculator';
 import Size from '../utils/Size';
 
 export const TextSpan = new Component<'text' | 'color' | 'fontSize' | SpecialParameterId>(
@@ -36,10 +37,13 @@ export const TextSpan = new Component<'text' | 'color' | 'fontSize' | SpecialPar
     'Text segment',
     true,
     [
-        {
-            id: 'text',
-            value: 'A',
-        },
+        new ParameterCalculator(
+            'text',
+            {
+                value: 'A',
+                isReference: false,
+            },
+        ),
     ],
     {
         width: ['fontSize'],

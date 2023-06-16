@@ -1,5 +1,6 @@
 import Component from '../../render/Component';
 import { ParameterTyping, SizeUnit, SpecialParameterId } from '../../types';
+import { ParameterCalculator } from '../utils/ParameterCalculator';
 import renderAsBlock from '../utils/renderAsBlock';
 import Size from '../utils/Size';
 
@@ -18,13 +19,19 @@ export const Spread = new Component<'moving-x'>(
     'A3 Spread',
     false,
     [
-        {
-            id: SpecialParameterId.X,
-            value: new Size(0, SizeUnit.PX),
-        },
-        {
-            id: SpecialParameterId.Y,
-            value: new Size(0, SizeUnit.PX),
-        },
+        new ParameterCalculator(
+            SpecialParameterId.X,
+            {
+                isReference: false,
+                value: new Size(0, SizeUnit.PX),
+            },
+        ),
+        new ParameterCalculator(
+            SpecialParameterId.Y,
+            {
+                isReference: false,
+                value: new Size(0, SizeUnit.PX),
+            },
+        ),
     ],
 );
