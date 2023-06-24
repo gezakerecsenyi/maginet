@@ -232,7 +232,7 @@ export default class DataRenderer {
                                 parameter.belongsTo.component.parameters.getById(parameter.id)!.type,
                                 this.selectingLinkFor.belongsTo!.component.parameters.getById(this.selectingLinkFor.id)!.type,
                             );
-                            const nodeEditor = new NodeRenderer(nodeEditorContainer, evaluator);
+                            const nodeEditor = new NodeRenderer(nodeEditorContainer, evaluator, this.maginet);
                             const modal = new ModalRenderer(nodeEditorContainer);
 
                             this.selectingLinkFor = null;

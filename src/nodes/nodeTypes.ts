@@ -2,10 +2,16 @@ import SearchableMap from '../lib/utils/SearchableMap';
 import { NodeValueDatum, ParameterTyping } from '../types';
 import NodeInstance from './NodeInstance';
 
-export interface NodeDatumSpecification<T extends string> {
+export enum IOType {
+    Input = 'input',
+    Output = 'output',
+}
+
+export interface NodeDatumSpecification<T extends string, Q extends IOType> {
     id: T;
     type: ParameterTyping;
     displayName: string;
+    datumType: Q;
 }
 
 export enum DropdownTyping {
@@ -15,6 +21,7 @@ export enum DropdownTyping {
 export interface DropdownSpecification<T extends string> {
     id: T;
     type: DropdownTyping.Dropdown;
+    datumType: IOType.Input;
     displayName: string;
 
     options: [string, string][];
@@ -54,6 +61,7 @@ export interface NodeInputMapping<T extends string> {
     isReference: boolean;
     value?: NodeIOValue;
     referenceTo?: NodeConnectionDescriptor<T>;
+    datumType: IOType.Input;
 }
 
 export interface DefaultInputValue<T extends string> {
@@ -61,4 +69,4 @@ export interface DefaultInputValue<T extends string> {
     value: NodeValueDatum,
 }
 
-export type NodeInputsSpecification<T extends string> = (NodeDatumSpecification<T> | DropdownSpecification<T>);
+export type NodeInputsSpecification<T extends string> = (NodeDatumSpecification<T, IOType.Input> | DropdownSpecification<T>);

@@ -1,19 +1,33 @@
+import { v4 } from 'uuid';
+import { availableNodes } from '../lib/nodes/availableNodes';
+import Maginet from '../Maginet';
 import NodeInstance from '../nodes/NodeInstance';
-import { NodeDatumSpecification } from '../nodes/nodeTypes';
+import {
+    IOType,
+    NodeDatumSpecification,
+    NodeInputMapping,
+    NodeInputsSpecification,
+    SpecialNodeIds,
+} from '../nodes/nodeTypes';
 import ParameterRelationshipEvaluator from '../nodes/ParameterRelationshipEvaluator';
 import { SpecialClasses } from '../types';
+import { ContextEntryType, ContextMenuButton } from './ContextMenuRenderer';
 
 export default class NodeRenderer {
     container: HTMLElement;
     viewWindow: HTMLElement;
     evaluator: ParameterRelationshipEvaluator;
+    maginet: Maginet;
     private mouseIsDown: boolean = false;
     private middleButtonIsDown: boolean = false;
     private newConnectionLine: HTMLElement;
+    private aboutToDropOn: [NodeInstance<string, string>, NodeInputMapping<any> & NodeInputsSpecification<any>] | null = null;
+    private _draggingBlob: [NodeInstance<string>, NodeDatumSpecification<any, IOType>, HTMLElement] | null = null;
 
-    constructor(container: HTMLElement, evaluator: ParameterRelationshipEvaluator) {
+    constructor(container: HTMLElement, evaluator: ParameterRelationshipEvaluator, maginet: Maginet) {
         this.container = container;
         this.evaluator = evaluator;
+        this.maginet = maginet;
 
         this.newConnectionLine = document.createElement('div');
         this.newConnectionLine.className = `connection-line hidden`;
@@ -31,11 +45,10 @@ export default class NodeRenderer {
         container.addEventListener('mousemove', this.handleMouseMove.bind(this), true);
         container.addEventListener('mousedown', this.handleMouseDown.bind(this), true);
         container.addEventListener('mousedown', this.handleWorkspaceClick.bind(this));
+        container.addEventListener('contextmenu', this.showContextMenu.bind(this));
 
         this.drawNodes();
     }
-
-    private _draggingBlob: [NodeInstance<string>, NodeDatumSpecification<any>, HTMLElement] | null = null;
 
     get draggingBlob() {
         return this._draggingBlob;
@@ -65,7 +78,7 @@ export default class NodeRenderer {
 
     set selectedNode(node: NodeInstance | null) {
         if (this.selectedNode) {
-            const currentNodeElem = this.viewWindow.querySelector(`#node-${this.selectedNode.id}`) as HTMLElement | null;
+            const currentNodeElem = this.viewWindow.querySelector(`#${NodeRenderer.getNodeId(this.selectedNode)}`) as HTMLElement | null;
 
             if (currentNodeElem) {
                 currentNodeElem.classList.remove('selected');
@@ -73,7 +86,7 @@ export default class NodeRenderer {
         }
 
         if (node) {
-            const nodeElem = this.viewWindow.querySelector(`#node-${node.id}`) as HTMLElement | null;
+            const nodeElem = this.viewWindow.querySelector(`#${NodeRenderer.getNodeId(node)}`) as HTMLElement | null;
 
             if (nodeElem) {
                 nodeElem.classList.add('selected');
@@ -107,10 +120,57 @@ export default class NodeRenderer {
         this._y = value;
     }
 
+    static getConnectionLine(a: { x: number, y: number }, b: { x: number, y: number }, element?: HTMLElement | null) {
+        const angle = Math.atan2(a.y - b.y, a.x - b.x);
+        const length = Math.sqrt(
+            Math.pow(a.y - b.y, 2) +
+            Math.pow(a.x - b.x, 2),
+        );
+
+        let elementToUse = element;
+        if (!elementToUse) {
+            elementToUse = document.createElement('div');
+            elementToUse.className = 'connection-line';
+        }
+
+        elementToUse.style.height = `${length}px`;
+        elementToUse.style.transform = `rotate(${angle - Math.PI / 2}rad)`;
+
+        return elementToUse;
+    }
+
+    static getNodeId(node: NodeInstance) {
+        return `node-${node.id}`;
+    }
+
+    static getInputId(node: NodeInstance, input: NodeInputMapping<string> | NodeDatumSpecification<string, IOType>) {
+        return `io-${node.id}-${input.id}-${input.datumType}`;
+    }
+
+    static getLineId(node: NodeInstance, input: NodeInputMapping<string> | NodeDatumSpecification<string, IOType>) {
+        return `line-${node.id}-${input.id}-${input.datumType}`;
+    }
+
+    markSelected() {
+        this.selectedNode = this.selectedNode;
+    }
+
     handleMouseUp() {
+        if (this.aboutToDropOn && this.draggingBlob) {
+            this.aboutToDropOn[0].inputMappings.updateById(this.aboutToDropOn[1].id, {
+                isReference: true,
+                referenceTo: {
+                    node: this.draggingBlob[0],
+                    parameterId: this.draggingBlob[1].id,
+                },
+            });
+        }
+
         this.mouseIsDown = false;
         this.middleButtonIsDown = false;
         this.draggingBlob = null;
+
+        this.drawNodes();
     }
 
     handleMouseDown(e: MouseEvent) {
@@ -120,6 +180,43 @@ export default class NodeRenderer {
 
             this.middleButtonIsDown = true;
         }
+    }
+
+    showContextMenu(ev: MouseEvent) {
+        ev.preventDefault();
+
+        this
+            .maginet
+            .contextMenuRenderer
+            .summonContextMenu(
+                ev.clientX,
+                ev.clientY,
+                availableNodes.map((e): ContextMenuButton => (
+                    {
+                        type: ContextEntryType.Button,
+                        label: e.displayName,
+                        onClick: () => {
+                            const boundingBox = this.container.getBoundingClientRect();
+
+                            const instance = new NodeInstance(
+                                v4(),
+                                e,
+                                [],
+                                ev.clientX - boundingBox.left - this.x,
+                                ev.clientY - boundingBox.top - this.y,
+                            );
+                            this.evaluator.nodes.push(instance);
+
+                            this.selectedNode = instance;
+                            this.mouseIsDown = true;
+
+                            this.drawNodes();
+
+                            return true;
+                        },
+                    }
+                )),
+            );
     }
 
     handleWorkspaceClick(e: MouseEvent) {
@@ -139,14 +236,17 @@ export default class NodeRenderer {
         if (this.mouseIsDown && this.draggingBlob) {
             const blobPos = this.draggingBlob[2].getBoundingClientRect();
 
-            const angle = Math.atan2(e.clientY - blobPos.top, e.clientX - blobPos.left);
-            const length = Math.sqrt(
-                Math.pow(e.clientY - blobPos.top, 2) +
-                Math.pow(e.clientX - blobPos.left, 2),
+            this.newConnectionLine = NodeRenderer.getConnectionLine(
+                {
+                    x: e.clientX,
+                    y: e.clientY,
+                },
+                {
+                    x: blobPos.left,
+                    y: blobPos.top,
+                },
+                this.newConnectionLine,
             );
-
-            this.newConnectionLine.style.height = `${length}px`;
-            this.newConnectionLine.style.transform = `rotate(${angle - Math.PI / 2}rad)`;
 
             return;
         }
@@ -156,6 +256,7 @@ export default class NodeRenderer {
             this.selectedNode.y += e.movementY;
 
             this.updateNodePositions();
+            this.drawConnections();
         }
     }
 
@@ -166,7 +267,7 @@ export default class NodeRenderer {
             .map(node => {
                 const container = document.createElement('div');
                 container.className = 'node';
-                container.id = `node-${node.id}`;
+                container.id = NodeRenderer.getNodeId(node);
 
                 const nodeName = document.createElement('h4');
                 nodeName.innerText = node.node.displayName;
@@ -183,7 +284,45 @@ export default class NodeRenderer {
 
                         const nodeBlob = document.createElement('div');
                         nodeBlob.className = 'node-blob nb-l';
-                        nodeBlob.id = `io-${node.id}-${input.id}`;
+                        nodeBlob.id = NodeRenderer.getInputId(node, input);
+
+                        nodeBlob.addEventListener('mouseover', () => {
+                            if (this.draggingBlob) {
+                                nodeBlob.classList.add('will-snap');
+
+                                if (
+                                    this.draggingBlob[1].type === input.type ||
+                                    this.draggingBlob[0].node.id === SpecialNodeIds.Saver ||
+                                    node.node.id === SpecialNodeIds.Saver
+                                ) {
+                                    nodeBlob.classList.remove('illegal');
+                                    this.aboutToDropOn = [
+                                        node,
+                                        input,
+                                    ];
+                                } else {
+                                    nodeBlob.classList.add('illegal');
+                                }
+                            }
+                        }, true);
+
+                        nodeBlob.addEventListener('mouseout', () => {
+                            nodeBlob.classList.remove('will-snap');
+                            nodeBlob.classList.remove('illegal');
+                            this.aboutToDropOn = null;
+                        }, true);
+
+                        nodeBlob.addEventListener('mousedown', (e) => {
+                            if (input.isReference) {
+                                e.preventDefault();
+                                e.stopPropagation();
+
+                                node.inputMappings.updateById(input.id, {
+                                    isReference: false,
+                                });
+                                this.drawNodes();
+                            }
+                        });
 
                         const nameLabel = document.createElement('span');
                         nameLabel.innerText = input.displayName;
@@ -203,7 +342,7 @@ export default class NodeRenderer {
 
                         const nodeBlob = document.createElement('div');
                         nodeBlob.className = 'node-blob nb-r';
-                        nodeBlob.id = `io-${node.id}-${output.id}`;
+                        nodeBlob.id = NodeRenderer.getInputId(node, output);
 
                         nodeBlob.addEventListener('mousedown', (e) => this.handleBlobDrag(e, node, output));
 
@@ -226,6 +365,46 @@ export default class NodeRenderer {
 
         this.viewWindow.replaceChildren(...nodes);
         this.updateNodePositions();
+        this.drawConnections();
+        this.markSelected();
+    }
+
+    drawConnections() {
+        const containerOffset = this.viewWindow.getBoundingClientRect();
+
+        this
+            .evaluator
+            .nodes
+            .forEach(node => {
+                node
+                    .inputMappings
+                    .forEach(input => {
+                        if (input.isReference) {
+                            const inputHere = document.getElementById(NodeRenderer.getInputId(node, input));
+                            const inputPos = inputHere!.getBoundingClientRect();
+
+                            const fromOutput = document.getElementById(
+                                NodeRenderer.getInputId(
+                                    input.referenceTo!.node,
+                                    input.referenceTo!.node.node.outputs.getById(input.referenceTo!.parameterId)!,
+                                ),
+                            );
+                            const outputPos = fromOutput!.getBoundingClientRect();
+
+                            const nodeElem = NodeRenderer.getConnectionLine(
+                                inputPos,
+                                outputPos,
+                                document.getElementById(NodeRenderer.getLineId(node, input)),
+                            );
+
+                            nodeElem.style.top = `${outputPos.y - containerOffset.y + 5}px`;
+                            nodeElem.style.left = `${outputPos.x - containerOffset.x + 5}px`;
+                            nodeElem.setAttribute('id', NodeRenderer.getLineId(node, input));
+
+                            this.viewWindow.appendChild(nodeElem);
+                        }
+                    });
+            });
     }
 
     handleNodeClick(node: NodeInstance) {
@@ -250,7 +429,7 @@ export default class NodeRenderer {
     handleBlobDrag(
         event: MouseEvent,
         node: NodeInstance,
-        output: NodeDatumSpecification<any>,
+        output: NodeDatumSpecification<any, IOType>,
     ) {
         event.preventDefault();
         event.stopPropagation();

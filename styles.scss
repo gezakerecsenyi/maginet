@@ -9,7 +9,13 @@ $green: #6aea9d;
 $purple: #b363ff;
 $orange: #f3410c;
 
+$light-purple: #e3ccff;
+$light-orange: #ffb6a0;
+
 $border-radius: 3px;
+
+$modal-z-index: 10000000;
+$context-z-index: 100000000;
 
 :root {
   --value: #{$green};
@@ -48,6 +54,7 @@ body {
 
   .context-menu {
     position: absolute;
+    z-index: $context-z-index;
 
     color: $translucent-white;
 
@@ -441,7 +448,7 @@ body {
 
   .modal-container {
     position: absolute;
-    z-index: 1000000000;
+    z-index: $modal-z-index;
     top: 0;
     left: 0;
     display: flex;
@@ -475,6 +482,7 @@ body {
 
     .connection-line {
       position: absolute;
+      z-index: 50;
       width: 2px;
       transform-origin: top;
       background-color: black;
@@ -488,7 +496,8 @@ body {
       position: relative;
 
       .node {
-        position: relative;
+        position: absolute;
+        z-index: 60;
         width: fit-content;
         padding: 12px;
         user-select: none;
@@ -503,6 +512,7 @@ body {
 
         .node-blob {
           position: absolute;
+          z-index: 1000;
           display: inline-block;
           width: 10px;
 
@@ -511,6 +521,16 @@ body {
           border-radius: 10px;
 
           background-color: $mid-gray;
+
+          &.will-snap {
+            border-color: $purple;
+            background-color: $light-purple;
+
+            &.illegal {
+              border-color: $orange;
+              background-color: $light-orange;
+            }
+          }
 
           &.nb-l {
             left: -5px;
@@ -534,6 +554,11 @@ body {
             margin-bottom: 0;
             padding-left: 0;
             list-style-type: none;
+
+            &:nth-child(2) {
+              margin-left: 20px;
+              text-align: right;
+            }
 
             li {
 

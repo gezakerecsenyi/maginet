@@ -1,12 +1,13 @@
 import SearchableMap from '../lib/utils/SearchableMap';
 import Node from './Node';
-import { NodeInputMapping } from './nodeTypes';
+import { IOType, NodeInputMapping } from './nodeTypes';
 
 export default class NodeInstance<T extends string = string, Q extends string = string> {
     public id: string;
     public node: Node<T, Q>;
     public x: number;
     public y: number;
+    public isSpec = false;
 
     constructor(id: string, node: Node<T, Q>, inputMappings: NodeInputMapping<T>[], x: number, y: number) {
         this.node = node;
@@ -39,6 +40,7 @@ export default class NodeInstance<T extends string = string, Q extends string = 
                         isArray: false,
                         data: this.node.defaults.getById(q.id)!.value,
                     },
+                    datumType: IOType.Input,
                 };
             });
     }

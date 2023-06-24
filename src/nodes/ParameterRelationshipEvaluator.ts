@@ -5,19 +5,18 @@ import ComponentInstanceFactory from '../render/ComponentInstanceFactory';
 import { NodeValueDatum, ParameterTyping, ParameterValueDatum } from '../types';
 import Node from './Node';
 import NodeInstance from './NodeInstance';
-import { NodeEvaluationCache, NodeIO, NodeIOValue, SpecialNodeIds } from './nodeTypes';
+import { IOType, NodeEvaluationCache, NodeIO, NodeIOValue, SpecialNodeIds } from './nodeTypes';
 
 export default class ParameterRelationshipEvaluator {
-    nodes: SearchableMap<string, NodeInstance<any, any>>;
+    nodes: SearchableMap<string, NodeInstance<string, string>>;
     outputType: ParameterTyping;
     inputType: ParameterTyping;
 
     constructor(
         inputType: ParameterTyping,
         outputType: ParameterTyping,
-        nodes?: SearchableMap<string, NodeInstance<any, any>>,
+        nodes?: SearchableMap<string, NodeInstance<string, string>>,
     ) {
-        console.log('got', inputType, outputType);
         this.inputType = inputType;
         this.outputType = outputType;
 
@@ -33,6 +32,7 @@ export default class ParameterRelationshipEvaluator {
                             id: 'value',
                             displayName: toSentenceCase(inputType),
                             type: inputType,
+                            datumType: IOType.Output,
                         },
                     ],
                     () => [],
@@ -52,6 +52,7 @@ export default class ParameterRelationshipEvaluator {
                             id: 'value',
                             displayName: toSentenceCase(outputType),
                             type: outputType,
+                            datumType: IOType.Input,
                         },
                     ],
                     [],
