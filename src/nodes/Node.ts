@@ -1,5 +1,6 @@
 import getDefaultValueForType from '../lib/utils/getDefaultValueForType';
 import SearchableMap from '../lib/utils/SearchableMap';
+import { Optional } from '../types';
 import { DefaultInputValue, IOType, NodeDatumSpecification, NodeEvaluator, NodeInputsSpecification } from './nodeTypes';
 
 export default class Node<T extends string, Q extends string> {
@@ -15,8 +16,8 @@ export default class Node<T extends string, Q extends string> {
     constructor(
         id: string,
         displayName: string,
-        inputs: NodeInputsSpecification<T>[],
-        outputs: NodeDatumSpecification<Q, IOType.Output>[],
+        inputs: Optional<NodeInputsSpecification<T>, 'datumType'>[],
+        outputs: Optional<NodeDatumSpecification<Q, IOType.Output>, 'datumType'>[],
         evaluateForwards: NodeEvaluator<T, Q>,
         evaluateBackwards: NodeEvaluator<Q, T>,
         canAcceptArrays: boolean = true,
@@ -24,8 +25,16 @@ export default class Node<T extends string, Q extends string> {
     ) {
         this.id = id;
         this.displayName = displayName;
-        this.inputs = new SearchableMap(...inputs);
-        this.outputs = new SearchableMap(...outputs);
+
+        this.inputs = new SearchableMap(...inputs.map(e => ({
+            ...e,
+            datumType: IOType.Input,
+        }) as NodeInputsSpecification<T>));
+        this.outputs = new SearchableMap(...outputs.map(e => ({
+            ...e,
+            datumType: IOType.Output,
+        }) as NodeDatumSpecification<Q, IOType.Output>));
+
         this.evaluateForwards = evaluateForwards;
         this.evaluateBackwards = evaluateBackwards;
         this.canAcceptArrays = canAcceptArrays;

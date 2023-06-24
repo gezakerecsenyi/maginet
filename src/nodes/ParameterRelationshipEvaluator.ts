@@ -20,28 +20,29 @@ export default class ParameterRelationshipEvaluator {
         this.inputType = inputType;
         this.outputType = outputType;
 
-        this.nodes = nodes || new SearchableMap<string, NodeInstance<any, any>>(
-            new NodeInstance(
-                SpecialNodeIds.Input,
-                new Node<string, 'value'>(
-                    SpecialNodeIds.Output,
-                    'Input',
-                    [],
-                    [
-                        {
-                            id: 'value',
-                            displayName: toSentenceCase(inputType),
-                            type: inputType,
-                            datumType: IOType.Output,
-                        },
-                    ],
-                    () => [],
-                    () => [],
-                ),
+        const inputNode = new NodeInstance(
+            SpecialNodeIds.Input,
+            new Node<string, 'value'>(
+                SpecialNodeIds.Output,
+                'Input',
                 [],
-                0,
-                0,
+                [
+                    {
+                        id: 'value',
+                        displayName: toSentenceCase(inputType),
+                        type: inputType,
+                        datumType: IOType.Output,
+                    },
+                ],
+                () => [],
+                () => [],
             ),
+            [],
+            0,
+            0,
+        );
+        this.nodes = nodes || new SearchableMap<string, NodeInstance<any, any>>(
+            inputNode,
             new NodeInstance(
                 SpecialNodeIds.Output,
                 new Node<'value', string>(
@@ -56,10 +57,19 @@ export default class ParameterRelationshipEvaluator {
                         },
                     ],
                     [],
-                    () => [],
+                    (e) => e,
                     () => [],
                 ),
-                [],
+                inputType === outputType ? [
+                    {
+                        id: 'value',
+                        isReference: true,
+                        referenceTo: {
+                            node: inputNode,
+                            parameterId: 'value',
+                        },
+                    } as const,
+                ] : [],
                 100,
                 0,
             ),
@@ -234,6 +244,8 @@ export default class ParameterRelationshipEvaluator {
                 },
             ),
         };
+
+        const usedSavers = new Set<string>();
         const evaluateNode = (instance: NodeInstance): SearchableMap<string, NodeIO<string>> | null => {
             if (evaluatedNodes.hasOwnProperty(instance.id)) {
                 return evaluatedNodes[instance.id];
@@ -251,7 +263,10 @@ export default class ParameterRelationshipEvaluator {
 
                     const lookup = evaluateNode(input.referenceTo!.node);
                     if (lookup !== null) {
-                        return lookup.getById(input.referenceTo!.parameterId)!;
+                        return {
+                            ...lookup.getById(input.referenceTo!.parameterId)!,
+                            id: input.id,
+                        };
                     }
 
                     return {
@@ -268,7 +283,8 @@ export default class ParameterRelationshipEvaluator {
                 const value = new SearchableMap(...res);
                 evaluatedNodes[instance.id] = value;
 
-                if (instance.node.id === SpecialNodeIds.Saver && onSaver) {
+                if (instance.node.id === SpecialNodeIds.Saver && onSaver && !usedSavers.has(instance.id)) {
+                    usedSavers.add(instance.id);
                     onSaver(instance.id, value.getById('value')!);
                 }
 
@@ -284,6 +300,7 @@ export default class ParameterRelationshipEvaluator {
             this
                 .nodes
                 .sFilter(t => t.node.id === SpecialNodeIds.Saver)
+                .sFilter(t => !usedSavers.has(t.id))
                 .forEach(node => {
                     evaluateNode(node);
                 });
@@ -291,7 +308,6 @@ export default class ParameterRelationshipEvaluator {
 
         if (res !== null) {
             const data = res.getById('value')!.value;
-
             return ParameterRelationshipEvaluator.toParameterDatum(data, this.outputType);
         } else {
             return null;

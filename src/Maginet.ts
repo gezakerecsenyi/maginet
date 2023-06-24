@@ -243,7 +243,7 @@ export default class Maginet {
                         instanceOrFactory.parameterMapping :
                         instanceOrFactory.parameterValues
                 )
-                    .sFilter(e => instanceOrFactory.component.parameters.getById(e.id)?.type === ParameterTyping.Children);
+                    .sFilter(e => e.dataType === ParameterTyping.Children);
 
                 for (const parameter of childParameters) {
                     let isFound = false;
@@ -315,9 +315,11 @@ export default class Maginet {
         const linked: ComponentInstanceFactory[] = (only && andLinked) ? this.getLinked(only) : [];
         const updateList = only ? only.concat(...linked) : undefined;
 
-        this.spreadRenderer.renderCurrentSpread(updateList);
+        this.spreadRenderer.renderCurrentSpread();
+        // this.spreadRenderer.renderCurrentSpread(updateList);
         this.spreadListRenderer.updatePreviews();
-        this.dataRenderer.renderList(updateList);
+        // this.dataRenderer.renderList(updateList);
+        this.dataRenderer.renderList();
     }
 
     select(instance: ComponentInstanceFactory[]) {

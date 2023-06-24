@@ -1,4 +1,5 @@
 import SearchableMap from '../lib/utils/SearchableMap';
+import { Optional } from '../types';
 import Node from './Node';
 import { IOType, NodeInputMapping } from './nodeTypes';
 
@@ -9,10 +10,19 @@ export default class NodeInstance<T extends string = string, Q extends string = 
     public y: number;
     public isSpec = false;
 
-    constructor(id: string, node: Node<T, Q>, inputMappings: NodeInputMapping<T>[], x: number, y: number) {
+    constructor(
+        id: string,
+        node: Node<T, Q>,
+        inputMappings: Optional<NodeInputMapping<T>, 'datumType'>[],
+        x: number,
+        y: number,
+    ) {
         this.node = node;
         this.id = id;
-        this.inputMappings = new SearchableMap(...inputMappings);
+        this.inputMappings = new SearchableMap(...inputMappings.map(e => ({
+            ...e,
+            datumType: IOType.Input,
+        }) as NodeInputMapping<T>));
 
         this.x = x;
         this.y = y;

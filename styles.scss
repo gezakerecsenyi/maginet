@@ -25,6 +25,27 @@ $context-z-index: 100000000;
   --edit-mode: var(--value);
 }
 
+@mixin toolbar-button {
+  font-size: 0.8rem;
+  margin-right: 10px;
+  padding: 4px 6px;
+  cursor: pointer;
+  color: $translucent-white;
+  border: 2px solid $almost-black;
+  border-radius: $border-radius;
+  background: $bg-dark;
+
+  &:hover {
+    color: white;
+  }
+
+  &.active {
+    color: white;
+    border-color: $bg-dark;
+    background-color: $almost-black;
+  }
+}
+
 body {
   display: flex;
   overflow: hidden;
@@ -237,24 +258,7 @@ body {
         place-items: center;
 
         button {
-          font-size: 0.8rem;
-          margin-right: 10px;
-          padding: 4px 6px;
-          cursor: pointer;
-          color: $translucent-white;
-          border: 2px solid $almost-black;
-          border-radius: $border-radius;
-          background: $bg-dark;
-
-          &:hover {
-            color: white;
-          }
-
-          &.active {
-            color: white;
-            border-color: $bg-dark;
-            background-color: $almost-black;
-          }
+          @include toolbar-button;
         }
       }
 
@@ -461,11 +465,31 @@ body {
     place-content: center;
 
     .modal-body {
+      position: relative;
       min-width: 40vw;
-      min-height: 60vh;
       border: 2px solid $accent-dark;
       border-radius: $border-radius;
       background-color: white;
+
+      .modal-contents {
+        width: 100%;
+        min-height: 60vh;
+      }
+
+      .modal-footer {
+        position: absolute;
+        bottom: 0;
+        display: flex;
+        width: calc(100% - 20px);
+        height: 40px;
+        padding: 5px 10px;
+        border-top: 1px solid $accent-dark;
+        background-color: $bg-dark;
+
+        button {
+          @include toolbar-button;
+        }
+      }
     }
   }
 
@@ -548,6 +572,7 @@ body {
 
         .io-container {
           display: flex;
+          justify-content: space-between;
 
           ul {
             margin-top: 10px;

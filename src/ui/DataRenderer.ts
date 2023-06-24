@@ -8,6 +8,7 @@ import ComponentInstance from '../render/ComponentInstance';
 import ComponentInstanceFactory from '../render/ComponentInstanceFactory';
 import {
     ComponentCompositionType,
+    ParameterAssociationDescriptor,
     ParameterTyping,
     RerenderOption,
     SizeUnit,
@@ -228,12 +229,40 @@ export default class DataRenderer {
 
                             const nodeEditorContainer = document.createElement('div');
 
+                            const selectingLinkFor = this.selectingLinkFor;
+
                             const evaluator = new ParameterRelationshipEvaluator(
-                                parameter.belongsTo.component.parameters.getById(parameter.id)!.type,
-                                this.selectingLinkFor.belongsTo!.component.parameters.getById(this.selectingLinkFor.id)!.type,
+                                parameter.dataType!,
+                                this.selectingLinkFor.dataType!,
                             );
                             const nodeEditor = new NodeRenderer(nodeEditorContainer, evaluator, this.maginet);
-                            const modal = new ModalRenderer(nodeEditorContainer);
+                            const modal = new ModalRenderer(
+                                nodeEditorContainer,
+                                [
+                                    [
+                                        'Save',
+                                        () => {
+                                            if (selectingLinkFor) {
+                                                selectingLinkFor.isReference = true;
+                                                selectingLinkFor.tiedTo = new ParameterAssociationDescriptor(
+                                                    factory || instance,
+                                                    parameter.id,
+                                                );
+                                                selectingLinkFor.relationshipEvaluator = evaluator;
+
+                                                const parent = selectingLinkFor.belongsTo;
+                                                if (parent && parent.compositionType === ComponentCompositionType.Factory) {
+                                                    this.maginet.rerender([parent]);
+                                                } else {
+                                                    this.maginet.rerender();
+                                                }
+                                            }
+
+                                            return true;
+                                        },
+                                    ],
+                                ],
+                            );
 
                             this.selectingLinkFor = null;
                         }

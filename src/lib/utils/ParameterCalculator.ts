@@ -34,6 +34,22 @@ export class ParameterCalculator<BelongsToIDs extends string, IsReference extend
         this.tiedTo = data.tiedTo;
         this.value = data.value;
         this.relationshipEvaluator = data.relationshipEvaluator;
+
+        const type = this.dataType;
+        if (this.isReference && this.tiedTo && type && !data.relationshipEvaluator) {
+            const sourceParamType = this
+                .tiedTo
+                .inComponent
+                .component
+                .parameters
+                .getById(this.tiedTo.parameterId)!
+                .type;
+
+            this.relationshipEvaluator = new ParameterRelationshipEvaluator(
+                sourceParamType,
+                type,
+            );
+        }
     }
 
     private _id!: BelongsToIDs | SpecialParameterId;
@@ -56,6 +72,10 @@ export class ParameterCalculator<BelongsToIDs extends string, IsReference extend
     set belongsTo(value: ComponentInstanceFactory<BelongsToIDs, any> | ComponentInstance<BelongsToIDs, any> | null) {
         this._belongsTo = value;
         this.contextualId = this.getContextualId();
+    }
+
+    get dataType() {
+        return this.belongsTo?.component.parameters.getById(this.id)?.type;
     }
 
     get data(): ParameterCalculatorData<BelongsToIDs, IsReference> {
@@ -129,7 +149,7 @@ export class ParameterCalculator<BelongsToIDs extends string, IsReference extend
 
             if (valueHere) {
                 return [
-                    valueHere.value!,
+                    this.relationshipEvaluator!.evaluate(valueHere.value!),
                     directReference as ParentComponent,
                     this.tiedTo!.parameterId,
                 ];
@@ -142,13 +162,18 @@ export class ParameterCalculator<BelongsToIDs extends string, IsReference extend
             if (valueHere) {
                 if (!valueHere.isReference) {
                     return [
-                        valueHere.value!,
+                        this.relationshipEvaluator!.evaluate(valueHere.value!),
                         directReference as ParentComponent,
                         this.tiedTo!.parameterId,
                     ];
                 }
 
-                return valueHere.resolveValue();
+                const resolvedValue = valueHere.resolveValue();
+                return [
+                    this.relationshipEvaluator!.evaluate(resolvedValue[0]!),
+                    resolvedValue[1],
+                    resolvedValue[2],
+                ];
             }
         }
 

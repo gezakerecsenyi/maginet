@@ -3,6 +3,7 @@ import { availableNodes } from '../lib/nodes/availableNodes';
 import Maginet from '../Maginet';
 import NodeInstance from '../nodes/NodeInstance';
 import {
+    DropdownTyping,
     IOType,
     NodeDatumSpecification,
     NodeInputMapping,
@@ -22,7 +23,6 @@ export default class NodeRenderer {
     private middleButtonIsDown: boolean = false;
     private newConnectionLine: HTMLElement;
     private aboutToDropOn: [NodeInstance<string, string>, NodeInputMapping<any> & NodeInputsSpecification<any>] | null = null;
-    private _draggingBlob: [NodeInstance<string>, NodeDatumSpecification<any, IOType>, HTMLElement] | null = null;
 
     constructor(container: HTMLElement, evaluator: ParameterRelationshipEvaluator, maginet: Maginet) {
         this.container = container;
@@ -49,6 +49,8 @@ export default class NodeRenderer {
 
         this.drawNodes();
     }
+
+    private _draggingBlob: [NodeInstance<string>, NodeDatumSpecification<any, IOType>, HTMLElement] | null = null;
 
     get draggingBlob() {
         return this._draggingBlob;
@@ -293,7 +295,10 @@ export default class NodeRenderer {
                                 if (
                                     this.draggingBlob[1].type === input.type ||
                                     this.draggingBlob[0].node.id === SpecialNodeIds.Saver ||
-                                    node.node.id === SpecialNodeIds.Saver
+                                    node.node.id === SpecialNodeIds.Saver || (
+                                        input.type === DropdownTyping.Dropdown &&
+                                        input.dropdownName === this.draggingBlob[1].dropdownContext
+                                    )
                                 ) {
                                     nodeBlob.classList.remove('illegal');
                                     this.aboutToDropOn = [
@@ -372,39 +377,49 @@ export default class NodeRenderer {
     drawConnections() {
         const containerOffset = this.viewWindow.getBoundingClientRect();
 
-        this
-            .evaluator
-            .nodes
-            .forEach(node => {
-                node
-                    .inputMappings
-                    .forEach(input => {
-                        if (input.isReference) {
-                            const inputHere = document.getElementById(NodeRenderer.getInputId(node, input));
-                            const inputPos = inputHere!.getBoundingClientRect();
+        let isBad = false;
+        for (let node of this.evaluator.nodes) {
+            if (isBad) {
+                break;
+            }
 
-                            const fromOutput = document.getElementById(
-                                NodeRenderer.getInputId(
-                                    input.referenceTo!.node,
-                                    input.referenceTo!.node.node.outputs.getById(input.referenceTo!.parameterId)!,
-                                ),
-                            );
-                            const outputPos = fromOutput!.getBoundingClientRect();
+            for (let input of node.inputMappings) {
+                if (input.isReference) {
+                    const inputHere = document.getElementById(NodeRenderer.getInputId(node, input));
 
-                            const nodeElem = NodeRenderer.getConnectionLine(
-                                inputPos,
-                                outputPos,
-                                document.getElementById(NodeRenderer.getLineId(node, input)),
-                            );
+                    if (inputHere) {
+                        const inputPos = inputHere.getBoundingClientRect();
 
-                            nodeElem.style.top = `${outputPos.y - containerOffset.y + 5}px`;
-                            nodeElem.style.left = `${outputPos.x - containerOffset.x + 5}px`;
-                            nodeElem.setAttribute('id', NodeRenderer.getLineId(node, input));
+                        const fromOutput = document.getElementById(
+                            NodeRenderer.getInputId(
+                                input.referenceTo!.node,
+                                input.referenceTo!.node.node.outputs.getById(input.referenceTo!.parameterId)!,
+                            ),
+                        );
+                        const outputPos = fromOutput!.getBoundingClientRect();
 
-                            this.viewWindow.appendChild(nodeElem);
-                        }
-                    });
-            });
+                        const nodeElem = NodeRenderer.getConnectionLine(
+                            inputPos,
+                            outputPos,
+                            document.getElementById(NodeRenderer.getLineId(node, input)),
+                        );
+
+                        nodeElem.style.top = `${outputPos.y - containerOffset.y + 5}px`;
+                        nodeElem.style.left = `${outputPos.x - containerOffset.x + 5}px`;
+                        nodeElem.setAttribute('id', NodeRenderer.getLineId(node, input));
+
+                        this.viewWindow.appendChild(nodeElem);
+                    } else {
+                        isBad = true;
+                        break;
+                    }
+                }
+            }
+        }
+
+        if (isBad) {
+            window.setTimeout(() => this.drawConnections(), 0);
+        }
     }
 
     handleNodeClick(node: NodeInstance) {

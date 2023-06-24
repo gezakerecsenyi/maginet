@@ -12,6 +12,7 @@ export interface NodeDatumSpecification<T extends string, Q extends IOType> {
     type: ParameterTyping;
     displayName: string;
     datumType: Q;
+    dropdownContext?: string;
 }
 
 export enum DropdownTyping {
@@ -25,6 +26,7 @@ export interface DropdownSpecification<T extends string> {
     displayName: string;
 
     options: [string, string][];
+    dropdownName: string;
 }
 
 export enum SpecialNodeIds {
@@ -52,7 +54,7 @@ export type NodeEvaluator<T extends string, Q extends string> = (
 ) => NodeIO<Q>[] | null;
 
 export interface NodeConnectionDescriptor<T extends string> {
-    node: NodeInstance<string, T>,
+    node: NodeInstance<any, T>,
     parameterId: T,
 }
 
@@ -60,7 +62,7 @@ export interface NodeInputMapping<T extends string> {
     id: T;
     isReference: boolean;
     value?: NodeIOValue;
-    referenceTo?: NodeConnectionDescriptor<T>;
+    referenceTo?: NodeConnectionDescriptor<any>;
     datumType: IOType.Input;
 }
 

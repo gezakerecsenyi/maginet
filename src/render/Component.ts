@@ -142,7 +142,7 @@ export default class Component<IDs extends string = string> {
 
             if (!renderRes) throw 0;
         } catch (err: any) {
-            // prevent nested catches (thus blaming the top-most element)
+            // prevent nested catches (thus blaming the top-most component)
             if (err.name === MaginetError.Name) {
                 throw err;
             }
