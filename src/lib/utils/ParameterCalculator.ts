@@ -114,15 +114,35 @@ export class ParameterCalculator<BelongsToIDs extends string, IsReference extend
             .inComponent;
 
         if (directReference.compositionType === ComponentCompositionType.Instance) {
-            directReference.updateParameter(this.tiedTo!.parameterId, value);
-            return true;
+            const currentValue = directReference
+                .parameterValues
+                .getById(this.tiedTo!.parameterId);
+
+            const reversedRes = this
+                .relationshipEvaluator
+                ?.evaluateBackwards(currentValue!.value!, value);
+            if (reversedRes) {
+                directReference.updateParameter(
+                    this.tiedTo!.parameterId,
+                    reversedRes,
+                );
+
+                return true;
+            }
         } else {
             const valueHere = directReference
                 .parameterMapping
                 .getById(this.tiedTo!.parameterId);
+            const currentValue = valueHere?.resolveValue()[0];
 
-            if (valueHere) {
-                return valueHere.updateValueReference(value);
+            if (currentValue && valueHere) {
+                const reversedRes = this
+                    .relationshipEvaluator
+                    ?.evaluateBackwards(currentValue, value);
+
+                if (reversedRes) {
+                    return valueHere.updateValueReference(reversedRes);
+                }
             }
         }
 

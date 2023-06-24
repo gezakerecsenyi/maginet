@@ -35,7 +35,7 @@ export default class ParameterRelationshipEvaluator {
                     },
                 ],
                 () => [],
-                () => [],
+                (e) => e,
             ),
             [],
             0,
@@ -116,6 +116,19 @@ export default class ParameterRelationshipEvaluator {
     }
 
     evaluateBackwards(
+        currentInput: ParameterValueDatum,
+        desiredOutput: ParameterValueDatum,
+        ignoreIllegal: boolean = true,
+    ) {
+        const saverStore: NodeEvaluationCache = {};
+        this.evaluate(currentInput, (id, datum) => {
+            saverStore[id] = datum;
+        });
+
+        return this.evaluateBackwardsFromStore(desiredOutput, saverStore, ignoreIllegal);
+    }
+
+    evaluateBackwardsFromStore(
         output: ParameterValueDatum,
         saverStore: NodeEvaluationCache = {},
         ignoreIllegal: boolean = false,
@@ -131,6 +144,7 @@ export default class ParameterRelationshipEvaluator {
             ),
             ...saverStore,
         };
+
         const evaluateNode = (node: NodeInstance): SearchableMap<string, NodeIO<string>> | null => {
             if (evaluatedNodes.hasOwnProperty(node.id)) {
                 return evaluatedNodes[node.id];
@@ -232,7 +246,7 @@ export default class ParameterRelationshipEvaluator {
 
     evaluate(
         input: ParameterValueDatum,
-        onSaver?: (id: string, datum: NodeIO<string>) => void,
+        onSaver?: (id: string, datum: SearchableMap<string, NodeIO<string>>) => void,
     ): ParameterValueDatum | null {
         const exitNode = this.nodes.getById(SpecialNodeIds.Output)!;
 
@@ -285,7 +299,7 @@ export default class ParameterRelationshipEvaluator {
 
                 if (instance.node.id === SpecialNodeIds.Saver && onSaver && !usedSavers.has(instance.id)) {
                     usedSavers.add(instance.id);
-                    onSaver(instance.id, value.getById('value')!);
+                    onSaver(instance.id, value);
                 }
 
                 return value;

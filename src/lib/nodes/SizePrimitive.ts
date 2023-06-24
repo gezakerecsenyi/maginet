@@ -77,7 +77,46 @@ export const SizePrimitive = new Node<'number' | 'unit', 'output'>(
 
         return null;
     },
-    () => {
+    (sources, knownValues, ignoreIllegal) => {
+        const output = sources.getById('output')?.value;
+        if (output) {
+            if (output.isArray) {
+                return [
+                    {
+                        id: 'number',
+                        value: {
+                            isArray: true,
+                            data: (output.data as Size[]).map(e => e.distance),
+                        },
+                    },
+                    {
+                        id: 'unit',
+                        value: {
+                            isArray: true,
+                            data: (output.data as Size[]).map(e => e.unit),
+                        },
+                    },
+                ];
+            }
+
+            return [
+                {
+                    id: 'number',
+                    value: {
+                        isArray: false,
+                        data: (output.data as Size).distance,
+                    },
+                },
+                {
+                    id: 'unit',
+                    value: {
+                        isArray: false,
+                        data: (output.data as Size).unit,
+                    },
+                },
+            ];
+        }
+
         return null;
     },
 );

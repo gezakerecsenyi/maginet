@@ -47,6 +47,8 @@ export default class NodeRenderer {
         container.addEventListener('mousedown', this.handleWorkspaceClick.bind(this));
         container.addEventListener('contextmenu', this.showContextMenu.bind(this));
 
+        container.addEventListener('keypress', this.handleKeyDown.bind(this), true);
+
         this.drawNodes();
     }
 
@@ -151,6 +153,10 @@ export default class NodeRenderer {
 
     static getLineId(node: NodeInstance, input: NodeInputMapping<string> | NodeDatumSpecification<string, IOType>) {
         return `line-${node.id}-${input.id}-${input.datumType}`;
+    }
+
+    handleKeyDown(e: KeyboardEvent) {
+        console.log(e.key);
     }
 
     markSelected() {

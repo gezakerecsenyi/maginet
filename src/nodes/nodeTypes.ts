@@ -49,7 +49,7 @@ export interface NodeIO<T extends string> {
 
 export type NodeEvaluator<T extends string, Q extends string> = (
     sources: SearchableMap<T, NodeIO<T>>,
-    knownValues?: SearchableMap<T, NodeIO<T>>,
+    knownValues?: SearchableMap<Q, NodeIO<Q>>,
     ignoreIllegal?: boolean,
 ) => NodeIO<Q>[] | null;
 

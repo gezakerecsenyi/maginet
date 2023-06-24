@@ -1,5 +1,5 @@
 import Node from '../../nodes/Node';
-import { ParameterTyping } from '../../types';
+import { ParameterTyping, SizeUnit } from '../../types';
 import Size from '../utils/Size';
 
 import { DropdownContext } from './SizePrimitive';
@@ -70,7 +70,37 @@ export const SeparateSize = new Node<'input', 'number' | 'unit'>(
 
         return null;
     },
-    () => {
+    (data) => {
+        const number = data.getById('number')?.value;
+        const unit = data.getById('unit')?.value;
+
+        if (number !== undefined) {
+            if (number.isArray) {
+                return [
+                    {
+                        id: 'input',
+                        value: {
+                            data: (number.data as number[]).map(e => new Size(
+                                e,
+                                (unit?.data as SizeUnit) || SizeUnit.PX,
+                            )),
+                            isArray: true,
+                        },
+                    },
+                ];
+            }
+
+            return [
+                {
+                    id: 'input',
+                    value: {
+                        data: new Size(number.data as number, (unit?.data as SizeUnit) || SizeUnit.PX),
+                        isArray: false,
+                    },
+                },
+            ];
+        }
+
         return null;
     },
 );

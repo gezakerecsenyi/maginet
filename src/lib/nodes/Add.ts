@@ -1,4 +1,5 @@
 import Node from '../../nodes/Node';
+import { NodeIO } from '../../nodes/nodeTypes';
 import { ParameterTyping } from '../../types';
 
 export const Add = new Node<'a' | 'b', 'res'>(
@@ -62,7 +63,51 @@ export const Add = new Node<'a' | 'b', 'res'>(
 
         return null;
     },
-    () => {
+    (data, knownValues): NodeIO<'a' | 'b'>[] | null => {
+        const res = data.getById('res');
+
+        if (res) {
+            const aValue = knownValues?.getById('a');
+            const bValue = knownValues?.getById('b');
+
+            if (aValue && bValue) {
+                return knownValues!;
+            }
+
+            if (aValue) {
+                return [
+                    aValue,
+                    {
+                        id: 'b',
+                        value: {
+                            data: res.value.data as number - (aValue.value.data as number),
+                            isArray: false,
+                        },
+                    },
+                ];
+            }
+
+            if (bValue) {
+                return [
+                    bValue,
+                    {
+                        id: 'a',
+                        value: {
+                            data: res.value.data as number - (bValue.value.data as number),
+                            isArray: false,
+                        },
+                    },
+                ];
+            }
+        }
+
         return null;
     },
+    true,
+    [
+        {
+            id: 'b',
+            value: 10,
+        },
+    ],
 );

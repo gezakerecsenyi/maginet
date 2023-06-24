@@ -21,7 +21,7 @@ export default class Node<T extends string, Q extends string> {
         evaluateForwards: NodeEvaluator<T, Q>,
         evaluateBackwards: NodeEvaluator<Q, T>,
         canAcceptArrays: boolean = true,
-        defaults?: SearchableMap<T, DefaultInputValue<T>>,
+        defaults?: DefaultInputValue<T>[],
     ) {
         this.id = id;
         this.displayName = displayName;
