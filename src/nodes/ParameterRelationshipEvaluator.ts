@@ -146,18 +146,23 @@ export default class ParameterRelationshipEvaluator {
         };
 
         const evaluateNode = (node: NodeInstance): SearchableMap<string, NodeIO<string>> | null => {
+            console.log(`[${node.id}] currently evaluating node ${node.node.displayName} backwards`);
             if (evaluatedNodes.hasOwnProperty(node.id)) {
+                console.log(`[${node.id}] found precomputed val:`, evaluatedNodes[node.id]);
                 return evaluatedNodes[node.id];
             }
 
             if (node.node.id === SpecialNodeIds.Saver) {
+                console.log(`[${node.id}] found as saver: ${saverStore[node.id]}`);
                 return saverStore[node.id];
             }
 
+            console.log(`[${node.id}] resolving sources...`);
             const sources = node
                 .node
                 .outputs
                 .sMap((output): NodeIO<string> => {
+                    console.log(`[${node.id}] [s ${output.id}] looking at output ${output.displayName}`);
                     const inputNodeData = this
                         .nodes
                         .map(compNode => [
@@ -174,6 +179,7 @@ export default class ParameterRelationshipEvaluator {
                         .filter(e => e[1])
                         .map(t => evaluateNode(t[0])?.getById(t[1]!.id)?.value || null);
 
+                    console.log(`[${node.id}] [s ${output.id}] completed resolution - got raw data:`, inputNodeData);
                     const allNodeData: NodeValueDatum[] = [];
                     inputNodeData.forEach(value => {
                         if (value === null) {
@@ -188,7 +194,16 @@ export default class ParameterRelationshipEvaluator {
                         }
                     });
 
+                    console.log(`[${node.id}] [s ${output.id}] cleaned raw data to`, allNodeData);
+
                     if (allNodeData.length) {
+                        console.log(`[${node.id}] [s ${output.id}] length > 1:`, {
+                            id: output.id,
+                            value: {
+                                isArray: true,
+                                data: allNodeData,
+                            },
+                        });
                         return {
                             id: output.id,
                             value: {
@@ -197,6 +212,13 @@ export default class ParameterRelationshipEvaluator {
                             },
                         };
                     } else if (allNodeData.length === 1) {
+                        console.log(`[${node.id}] [s ${output.id}] length = 1:`, {
+                            id: output.id,
+                            value: {
+                                isArray: false,
+                                data: allNodeData[0],
+                            },
+                        });
                         return {
                             id: output.id,
                             value: {
@@ -206,6 +228,13 @@ export default class ParameterRelationshipEvaluator {
                         };
                     }
 
+                    console.log(`[${node.id}] [s ${output.id}] got null:`, {
+                        id: output.id,
+                        value: {
+                            isArray: false,
+                            data: null,
+                        },
+                    });
                     return {
                         id: output.id,
                         value: {
@@ -214,6 +243,7 @@ export default class ParameterRelationshipEvaluator {
                         },
                     };
                 });
+            console.log(`[${node.id}] resolved sources:`, sources);
 
             const knownInputs = node
                 .inputMappings
@@ -222,24 +252,31 @@ export default class ParameterRelationshipEvaluator {
                     id: t.id,
                     value: t.value!,
                 }));
+            console.log(`[${node.id}] got fixed inputs:`, knownInputs);
 
             const res = node.node.evaluateBackwards(sources, knownInputs, ignoreIllegal);
+            console.log(`[${node.id}] requested backwards evaluation with res:`, res);
             if (res !== null) {
                 const value = new SearchableMap(...res);
                 evaluatedNodes[node.id] = value;
 
+                console.log(`[${node.id}] res is positive, sending:`, value);
                 return value;
             } else {
+                console.log(`[${node.id}] res is null, sending null`);
                 return null;
             }
         };
 
+        console.log(`[EVAL] start - `, output);
         const res = evaluateNode(inputNode);
         if (res !== null) {
             const inputData = res.getById('value')!.value;
+            console.log(`[EVAL] res is positive, sending`, inputData, `from`, res);
 
             return ParameterRelationshipEvaluator.toParameterDatum(inputData, this.inputType);
         } else {
+            console.log(`[EVAL] res is null, sending null`);
             return null;
         }
     }

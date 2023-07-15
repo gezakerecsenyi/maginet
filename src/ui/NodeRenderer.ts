@@ -38,8 +38,7 @@ export default class NodeRenderer {
         this.viewWindow.className = 'node-view-window';
         container.replaceChildren(this.newConnectionLine, this.viewWindow);
 
-        this.x = 0;
-        this.y = 0;
+        this.resetView();
 
         container.addEventListener('mouseup', this.handleMouseUp.bind(this), true);
         container.addEventListener('mousemove', this.handleMouseMove.bind(this), true);
@@ -153,6 +152,12 @@ export default class NodeRenderer {
 
     static getLineId(node: NodeInstance, input: NodeInputMapping<string> | NodeDatumSpecification<string, IOType>) {
         return `line-${node.id}-${input.id}-${input.datumType}`;
+    }
+
+    resetView() {
+        const bb = this.container.getBoundingClientRect();
+        this.x = bb.width * 0.1;
+        this.y = bb.width * 0.1;
     }
 
     handleKeyDown(e: KeyboardEvent) {

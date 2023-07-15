@@ -264,6 +264,8 @@ export default class DataRenderer {
                                 ],
                             );
 
+                            nodeEditor.resetView();
+
                             this.selectingLinkFor = null;
                         }
                     });
